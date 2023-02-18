@@ -34,7 +34,7 @@ def locationProvider(lp: LocationProvider): SetLocationProvider = SetLocationPro
 
 implicit def directiveOfOptionSyntax[L](underlying: Directive[Option[L]]): DirectiveOfOptionOps[L] = new DirectiveOfOptionOps(underlying)
 
-private[frontroute] val rejected: RouteResult = RouteResult.Rejected
+private[frontroute] val rejected: IO[RouteResult] = IO.pure(RouteResult.Rejected)
 
 val reject: Route = (_, _, _) => rejected
 
@@ -45,14 +45,17 @@ def debug(message: Any, optionalParams: Any*)(subRoute: Route): Route = { (locat
 
 def firstMatch(routes: Route*): Route = (location, previous, state) => {
 
-  def findFirst(rs: List[(Route, Int)]): RouteResult =
+  def findFirst(rs: List[(Route, Int)]): IO[RouteResult] =
     rs match {
       case Nil                    => rejected
       case (route, index) :: tail =>
-        route(location, previous, state.enterConcat(index)) match {
-          case RouteResult.Matched(state, location, consumed, result) => RouteResult.Matched(state, location, consumed, result)
-          case RouteResult.RunEffect(state, location, consumed, run)  => RouteResult.RunEffect(state, location, consumed, run)
-          case RouteResult.Rejected                                   => findFirst(tail)
+        route(location, previous, state.enterConcat(index)).flatMap {
+          case RouteResult.Matched(state, location, consumed, result) =>
+             RouteResult.Matched(state, location, consumed, result).pure[IO]
+          case RouteResult.RunEffect(state, location, consumed, run)  => 
+            RouteResult.RunEffect(state, location, consumed, run).pure[IO]
+          case RouteResult.Rejected                                   =>
+             findFirst(tail)
         }
     }
 
@@ -63,7 +66,7 @@ implicit def addNullaryDirectiveApply(directive: Directive0): Route => Route = {
   directive.tapply(_ => subRoute)(location, previous, state)
 }
 
-private def complete(result: Resource[IO, HtmlElement[IO]]): Route = (location, _, state) => RouteResult.Matched(state, location, state.consumed, result)
+private def complete(result: Resource[IO, HtmlElement[IO]]): Route = (location, _, state) => RouteResult.Matched(state, location, state.consumed, result).pure[IO]
 
 def runEffect(effect: IO[Unit]): Route = (location, _, state) =>
   RouteResult.RunEffect(
@@ -71,7 +74,7 @@ def runEffect(effect: IO[Unit]): Route = (location, _, state) =>
     location,
     List.empty,
     effect
-  )
+  ).pure[IO]
 
 implicit def elementToRoute(e: => Resource[IO, HtmlElement[IO]]): Route = complete(e)
 

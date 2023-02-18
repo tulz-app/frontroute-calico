@@ -1,5 +1,6 @@
 package io.frontroute
 
+import cats.syntax.all.*
 import io.frontroute.ops.DirectiveOfOptionOps
 import fs2.concurrent.Signal
 import cats.effect.IO
@@ -60,9 +61,11 @@ class Directive[L](
       self
         .tapply { value => (location, previous, state) =>
           inner(value)(location, previous, state.leaveDisjunction)
-        }(location, previous, state.enterDisjunction) match {
-        case RouteResult.Matched(state, location, consumed, result) => RouteResult.Matched(state, location, consumed, result)
-        case RouteResult.RunEffect(state, location, consumed, run)  => RouteResult.RunEffect(state, location, consumed, run)
+        }(location, previous, state.enterDisjunction).flatMap {
+        case RouteResult.Matched(state, location, consumed, result) =>
+           RouteResult.Matched(state, location, consumed, result).pure[IO]
+        case RouteResult.RunEffect(state, location, consumed, run)  => 
+          RouteResult.RunEffect(state, location, consumed, run).pure[IO]
         case RouteResult.Rejected                                   =>
           other.tapply { value => (location, previous, state) =>
             inner(value)(location, previous, state.leaveDisjunction)
@@ -93,20 +96,22 @@ class Directive[L](
       }
     }
 
-  // def signal: Directive[Signal[IO, L]] =
-  //   new Directive[Signal[IO, L]]({ inner => (location, previous, state) =>
-  //     this.tapply { value => (location, previous, state) =>
-  //       val next = state.unsetValue().enter
-  //       previous.getValue[SignallingRef[IO, L]](next.path.key) match {
-  //         case None              =>
-  //           val newVar = Var(value)
-  //           inner(newVar.signal)(location, previous, next.setValue(newVar))
-  //         case Some(existingVar) =>
-  //           existingVar.set(value)
-  //           inner(existingVar)(location, previous, next.setValue(existingVar))
-  //       }
-  //     }(location, previous, state)
-  //   })
+  def signal: Directive[Signal[IO, L]] =
+    new Directive[Signal[IO, L]]({ inner => (location, previous, state) =>
+      this.tapply { value => (location, previous, state) =>
+        val next = state.unsetValue().enter
+        previous.getValue[SignallingRef[IO, L]](next.path.key) match {
+          case None              =>
+            SignallingRef.of[IO, L](value).flatMap { newVar =>
+              inner(newVar)(location, previous, next.setValue(newVar))
+            }
+          case Some(existingVar) =>
+            existingVar.set(value) >>
+              inner(existingVar)(location, previous, next.setValue(existingVar))
+
+        }
+      }(location, previous, state)
+    })
 
 object Directive:
 
