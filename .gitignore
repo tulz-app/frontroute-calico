@@ -4,3 +4,5 @@ target
 .metals
 .bsp
 node_modules
+.bloop
+metals.sbt
