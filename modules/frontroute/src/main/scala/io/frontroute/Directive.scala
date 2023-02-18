@@ -8,10 +8,9 @@ import fs2.concurrent.SignallingRef
 
 class Directive[L](
   val tapply: (L => Route) => Route
-) extends ((L => Route) => Route):
+):
   self =>
-
-  def apply(a: L => Route): Route = tapply(a)
+ 
 
   def flatMap[R](next: L => Directive[R]): Directive[R] = {
     Directive[R] { inner =>

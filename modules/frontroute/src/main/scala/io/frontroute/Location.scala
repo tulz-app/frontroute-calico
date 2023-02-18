@@ -13,7 +13,7 @@ final case class Location(
   path: List[String],
   fullPath: List[String],
   params: Map[String, Seq[String]],
-  state: Option[js.Any],
+  state: Option[js.UndefOr[js.Any]],
   otherMatched: Boolean
 ) {
 
@@ -32,14 +32,14 @@ final case class Location(
 
 object Location {
 
-  def apply(location: dom.Location, state: Option[js.Any]): Location = {
+  def apply(location: dom.Location, state: Option[js.UndefOr[js.Any]]): Location = {
     val path = extractPath(location)
     new Location(
       hostname = location.hostname,
       port = location.port,
       protocol = location.protocol,
       host = location.host,
-      origin = location.origin.toOption,
+      origin = location.origin.asInstanceOf[js.UndefOr[String]].toOption,
       path = path,
       fullPath = path,
       params = LocationUtils.parseLocationParams(location),

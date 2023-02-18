@@ -118,65 +118,12 @@ object PathMatcher {
 
   def fail[T]: PathMatcher[T] = (consumed: List[String], in: List[String]) => PathMatchResult.Rejected(in)
 
-}
+  implicit def stringToSegment(s: String): PathMatcher[Unit] = segment(s)
 
-trait PathMatchers {
-
-  def segment: PathMatcher[String] =
-    (consumed: List[String], in: List[String]) =>
-      in match {
-        case head :: tail => PathMatchResult.Match(head, consumed.appended(head), tail)
-        case Nil          => PathMatchResult.NoMatch
-      }
-
-  def segment(oneOf: Seq[String]): PathMatcher[String] =
-    (consumed: List[String], in: List[String]) =>
-      in match {
-        case head :: tail =>
-          if (oneOf.contains(head)) {
-            PathMatchResult.Match(head, consumed.appended(head), tail)
-          } else {
-            PathMatchResult.Rejected(tail)
-          }
-        case Nil          => PathMatchResult.NoMatch
-      }
-
-  def segment(oneOf: Set[String]): PathMatcher[String] =
-    (consumed: List[String], in: List[String]) =>
-      in match {
-        case head :: tail =>
-          if (oneOf.contains(head)) {
-            PathMatchResult.Match(head, consumed.appended(head), tail)
-          } else {
-            PathMatchResult.Rejected(tail)
-          }
-        case Nil          => PathMatchResult.NoMatch
-      }
-
-  def segment(s: String): PathMatcher0 =
-    (consumed: List[String], in: List[String]) =>
-      in match {
-        case head :: tail =>
-          if (head == s) {
-            PathMatchResult.Match((), consumed.appended(head), tail)
-          } else {
-            PathMatchResult.Rejected(tail)
-          }
-        case Nil          => PathMatchResult.NoMatch
-      }
-
-  def regex(r: Regex): PathMatcher[Match] =
-    segment
-      .map { s => r.findFirstMatchIn(s) }
-      .collect { case Some(m) => m }
-
-  def long: PathMatcher[Long] = segment.tryParse(_.toLong)
-
-  def double: PathMatcher[Double] = segment.tryParse(_.toDouble)
-
-  implicit def stringToSegment(s: String): PathMatcher[Unit]         = segment(s)
   implicit def setToSegment(oneOf: Set[String]): PathMatcher[String] = segment(oneOf)
+
   implicit def setToSegment(oneOf: Seq[String]): PathMatcher[String] = segment(oneOf)
-  implicit def regexToPathMatcher(r: Regex): PathMatcher[Match]      = regex(r)
+
+  implicit def regexToPathMatcher(r: Regex): PathMatcher[Match] = regex(r)
 
 }

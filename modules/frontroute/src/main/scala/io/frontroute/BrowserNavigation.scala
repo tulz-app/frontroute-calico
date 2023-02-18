@@ -49,7 +49,7 @@ object BrowserNavigation {
   ): IO[Unit] = {
     Frontroute.history.state.get.flatMap { historyState =>
       IO.whenA(preserveScroll) {
-        val newState = HistoryState.tryParse(historyState) match {
+        val newState = HistoryState.tryParse(historyState.map(_.asInstanceOf[js.UndefOr[js.Any]])) match {
           case Some(currentState) =>
             createHistoryState(
               user = currentState.user,
@@ -62,7 +62,7 @@ object BrowserNavigation {
             )
         }
         Frontroute.history.replaceState(
-          newState
+          newState.asInstanceOf[Unit]
         )
 //        dom.window.history.replaceState(
 //          statedata = newState,
@@ -76,12 +76,12 @@ object BrowserNavigation {
           val eff   = url.toOption match {
             case Some(url) =>
               Frontroute.history.pushState(
-                state = state,
+                state = state.asInstanceOf[Unit],
                 url = url
               )
             case None      =>
               Frontroute.history.pushState(
-                state = state,
+                state = state.asInstanceOf[Unit],
               )
           }
           eff >> IO.whenA(popStateEvent) { emitPopStateEvent(state) }
@@ -102,12 +102,12 @@ object BrowserNavigation {
     val eff   = url.toOption match {
       case Some(url) =>
         Frontroute.history.replaceState(
-          state = state,
+          state = state.asInstanceOf[Unit],
           url = url
         )
       case None      =>
         Frontroute.history.replaceState(
-          state = state,
+          state = state.asInstanceOf[Unit],
         )
     }
     eff >> IO.whenA(popStateEvent) { emitPopStateEvent(state) }

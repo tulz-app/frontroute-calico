@@ -159,11 +159,11 @@ private[frontroute] object LocationState:
     }
   }
 
-  def initIfMissing[N <: fs2.dom.Node[IO]](n: N, init: () => Resource[IO, LocationState]): Resource[IO, LocationState] = {
+  def initIfMissing[N <: fs2.dom.Node[IO]](n: N, init: Resource[IO, LocationState]): Resource[IO, LocationState] = {
     val node            = n.asInstanceOf[dom.Node]
     val resultWithState = node.asInstanceOf[ElementWithLocationState]
     if (resultWithState.____locationState.isEmpty) {
-      resultWithState.____locationState = init()
+      resultWithState.____locationState = init
     }
     resultWithState.____locationState.get
   }

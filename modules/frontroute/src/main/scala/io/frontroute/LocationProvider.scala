@@ -24,14 +24,15 @@ trait LocationProvider {
 object LocationProvider:
 
   lazy val windowLocationProvider: LocationProvider =
-    BrowserLocationProvider(Frontroute.history.state)
+    BrowserLocationProvider(Frontroute.history.state.map(_.map(_.asInstanceOf[js.UndefOr[js.Any]])))
 
 //  @inline def custom(locationStrings: Signal[F, String])(using Functor[F]) = CustomLocationProvider[F](locationStrings)
 
 object BrowserLocationProvider:
 
-  def apply(state: Signal[IO, Option[js.Any]]): LocationProvider =
+  def apply(state: Signal[IO, Option[js.UndefOr[js.Any]]]): LocationProvider =
     new LocationProvider:
       val current: Signal[IO, Option[Location]] = state.map { state =>
+        println(s"BrowserLocationProvider state: $state -- ${state.flatMap(_.toOption)}")
         Location(dom.window.location, state).some
       }

@@ -91,7 +91,34 @@ lazy val website = project
   .settings(
     githubWorkflowTargetTags        := Seq.empty,
     publish / skip                  := true,
-    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
+    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
+    scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(ESVersion.ES5_1)) },
+    Compile / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+    scalaJSUseMainModuleInitializer := true,
+    //    scalaJSLinkerConfig ~= (_.withModuleSplitStyle(org.scalajs.linker.interface.ModuleSplitStyle.FewestModules)),
+    libraryDependencies ++= Seq.concat(
+      Dependencies.laminext.value,
+      Dependencies.`embedded-files-macro`.value,
+      Dependencies.sourcecode.value
+    ),
+    embedTextGlobs                  := Seq("**/*.md"),
+    embedDirectories ++= (Compile / unmanagedSourceDirectories).value,
+    (Compile / sourceGenerators) += embedFiles
+  )
+  .dependsOn(
+    frontroute
+  )
+
+lazy val sandbox = project
+  .in(file("sandbox"))
+  .enablePlugins(ScalaJSPlugin)
+  .enablePlugins(EmbeddedFilesPlugin)
+  .settings(ScalaOptions.fixOptions)
+  .settings(noPublish)
+  .settings(
+    githubWorkflowTargetTags        := Seq.empty,
+    publish / skip                  := true,
+//    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
     scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(ESVersion.ES5_1)) },
     Compile / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
     scalaJSUseMainModuleInitializer := true,

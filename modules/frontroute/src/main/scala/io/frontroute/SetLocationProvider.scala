@@ -25,6 +25,6 @@ object SetLocationProvider:
           LocationState
             .initIfMissing(
               e,
-              () => LocationState.withLocationProvider(m.lp)
+              LocationState.withLocationProvider(m.lp)
             ).void
       }

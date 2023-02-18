@@ -23,18 +23,20 @@ private[frontroute] class HistoryState(
 
 object HistoryState {
 
-  def tryParse(raw: Option[js.Any]): Option[HistoryState] = {
-    raw.fold(
-      Some(new HistoryState(js.undefined, js.undefined))
-    ) { raw =>
-      val state = raw.asInstanceOf[HistoryState]
-      if (state.frontroute.contains("frontroute")) {
-        Some(state)
-      } else {
-        dom.console.debug("history state was set outside frontroute", state, state.isInstanceOf[HistoryState])
-        None
+  def tryParse(raw: Option[js.UndefOr[js.Any]]): Option[HistoryState] = {
+    println(s"try parse: $raw")
+    raw
+      .flatMap(_.toOption).fold(
+        Some(new HistoryState(js.undefined, js.undefined))
+      ) { raw =>
+        val state = raw.asInstanceOf[HistoryState]
+        if (state.frontroute.contains("frontroute")) {
+          Some(state)
+        } else {
+          dom.console.debug("history state was set outside frontroute", state, state.isInstanceOf[HistoryState])
+          None
+        }
       }
-    }
   }
 
 }
