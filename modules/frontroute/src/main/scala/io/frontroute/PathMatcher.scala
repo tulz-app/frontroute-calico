@@ -118,12 +118,4 @@ object PathMatcher {
 
   def fail[T]: PathMatcher[T] = (consumed: List[String], in: List[String]) => PathMatchResult.Rejected(in)
 
-  implicit def stringToSegment(s: String): PathMatcher[Unit] = segment(s)
-
-  implicit def setToSegment(oneOf: Set[String]): PathMatcher[String] = segment(oneOf)
-
-  implicit def setToSegment(oneOf: Seq[String]): PathMatcher[String] = segment(oneOf)
-
-  implicit def regexToPathMatcher(r: Regex): PathMatcher[Match] = regex(r)
-
 }

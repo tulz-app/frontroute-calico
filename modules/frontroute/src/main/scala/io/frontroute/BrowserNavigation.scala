@@ -1,7 +1,6 @@
 package io.frontroute
 
 import cats.syntax.all._
-import io.frontroute.domext.WindowWithScrollXY
 import io.frontroute.internal.FrontrouteHistoryState
 import io.frontroute.internal.HistoryState
 import io.frontroute.internal.HistoryStateScrollPosition
@@ -12,8 +11,6 @@ import cats.effect.IO
 
 object BrowserNavigation {
 
-  private val windowWithScrollXY = dom.window.asInstanceOf[WindowWithScrollXY]
-
   private var preserveScroll = true
 
   def preserveScroll(keep: Boolean): Unit = {
@@ -22,8 +19,8 @@ object BrowserNavigation {
 
   private def currentScrollPosition(): HistoryStateScrollPosition = {
     new HistoryStateScrollPosition(
-      scrollX = windowWithScrollXY.scrollX,
-      scrollY = windowWithScrollXY.scrollY
+      scrollX = dom.window.scrollX,
+      scrollY = dom.window.scrollY
     )
   }
 

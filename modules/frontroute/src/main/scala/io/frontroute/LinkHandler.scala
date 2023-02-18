@@ -7,6 +7,7 @@ import scala.scalajs.js
 import calico.html.Modifier
 import cats.effect.IO
 import cats.effect.Resource
+import cats.effect.unsafe.implicits.global
 
 object LinkHandler {
 
@@ -29,9 +30,9 @@ object LinkHandler {
         }
         if (shouldPush) {
           if (rel == "replace") {
-            BrowserNavigation.replaceState(url = anchor.href)
+            BrowserNavigation.replaceState(url = anchor.href).unsafeRunAndForget()
           } else {
-            BrowserNavigation.pushState(url = anchor.href)
+            BrowserNavigation.pushState(url = anchor.href).unsafeRunAndForget()
           }
         }
       } else if (rel == "external") {

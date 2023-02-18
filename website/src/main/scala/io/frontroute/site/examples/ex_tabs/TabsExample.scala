@@ -53,8 +53,7 @@ object TabsExample
             /* <focus> */
             path(Set("tab-1", "tab-2")).signal { tab =>
               /* </focus> */
-              println(s"!!! tabs matched")
-
+              \
               div(
                 div(
                   cls.toggle("hidden") <-- !tab.valueIs("tab-1"),
@@ -69,18 +68,11 @@ object TabsExample
               /* <focus> */
             },
             /* </focus> */
-
-            debug("before noneMatched") {
-
-              (noneMatched & extractUnmatchedPath) { unmatched =>
-
-                println(s"!!! not found matched: $unmatched")
-
-                div(
-                  div(cls := "text-2xl", "Not Found"),
-                  div(unmatched.mkString("/", "/", ""))
-                )
-              }
+            (noneMatched & extractUnmatchedPath) { unmatched =>
+              div(
+                div(cls := "text-2xl", "Not Found"),
+                div(unmatched.mkString("/", "/", ""))
+              )
             }
           )
         )

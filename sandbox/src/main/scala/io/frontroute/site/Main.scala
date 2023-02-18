@@ -20,8 +20,25 @@ object Main extends IOWebApp {
 
       div(
         cls := "space-y-4 p-4",
+        div(
+          a(href := "/page-1", "page-1"),
+          a(href := "/page-2", "page-2"),
+          a(href := "/page-3", "page-3"),
+        ),
+        div(
+          a(href := "/effect-1", "effect-1"),
+          a(href := "/effect-2/sub-1", "effect-2/sub-1"),
+          a(href := "/effect-2/sub-2", "effect-2/sub-2"),
+          a(href := "/effect-2/sub-3", "effect-2/sub-3"),
+        ),
         pathEnd {
           div("path ends here")
+        },
+        path("effect-1").execute {
+          IO(println("effect-1"))
+        },
+        path("effect-2" / segment).execute { subSegment =>
+          IO(println(s"effect-1/$subSegment"))
         },
         path(segment) { segment =>
           div(
@@ -46,23 +63,6 @@ object Main extends IOWebApp {
           )
         },
         LinkHandler,
-        div(
-          a(href := "/page-1", "page-1"),
-          a(href := "/page-2", "page-2"),
-          a(href := "/page-3", "page-3"),
-          button(
-            "page 1",
-            onClick --> {
-              _.foreach(_ => BrowserNavigation.pushState(url = "/page-1"))
-            }
-          ),
-          button(
-            "page 2",
-            onClick --> {
-              _.foreach(_ => BrowserNavigation.pushState(url = "/page-2"))
-            }
-          ),
-        ),
         p(
           cls := "flex items-center space-x-4",
           span("Step:"),

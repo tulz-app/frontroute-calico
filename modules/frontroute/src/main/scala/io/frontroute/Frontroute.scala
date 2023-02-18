@@ -67,46 +67,28 @@ def firstMatch(routes: Route*): Route = (location, previous, state) => {
   findFirst(routes.zipWithIndex.toList)
 }
 
-// trait =!:=[A, B] {
-//   def impossible(proof: A =:= B): Nothing
-// }
-
-// sealed trait InvT[X, Y]
-
-// implicit def thingsNotUnit[T]: T =!:= Unit = new =!:=[T, Unit] {
-//   type Map[X, Y] = InvT[X, Y] match {
-//     case InvT[Unit, T] => Unit
-//     case InvT[T, Unit] => Nothing
-//   }
-
-//   override def impossible(proof: T =:= Unit): Nothing =
-//     proof.substituteBoth[Map](())
-// }
-
 extension (directive: Directive0)
-  // @targetName("apply_node")
-  // def apply[N <: fs2.dom.Node[IO]](subRoute: => Resource[IO, N]): Route =
-  // (location, previous, state) => directive.tapply(_ => complete(subRoute))(location, previous, state)
-
   def apply(subRoute: Route): Route =
     (location, previous, state) => directive.tapply(_ => subRoute)(location, previous, state)
 
 extension [L](directive: Directive[L]) // (using NotGiven[L =:= Unit])
 
-  // @targetName("apply_node")
-  // def apply[N <: fs2.dom.Node[IO]](subRoute: L => Resource[IO, N]): Route =
-  // (location, previous, state) => directive.tapply(l => complete(subRoute(l)))(location, previous, state)
-
   def apply(subRoute: L => Route): Route =
     (location, previous, state) => directive.tapply(subRoute)(location, previous, state)
 
-// implicit def addNullaryDirectiveApplyWithElement[N <: fs2.dom.Node[IO]](directive: Directive0): Resource[IO, N] => Route = { (subRoute: Resource[IO, N]) => (location, previous, state) =>
-// directive.tapply(_ => complete(subRoute))(location, previous, state)
-// }
+extension (directive: Directive0)
+  def execute(effect: IO[Unit]): Route =
+    (location, previous, state) => directive.tapply(_ => runEffect { effect })(location, previous, state)
 
-// implicit def addDirectiveApply[L](directive: Directive[L]): (L => Route) => Route = { subRoute => (location, previous, state) =>
-//   directive.tapply(subRoute)(location, previous, state)
-// }
+extension [L](directive: Directive[L]) // (using NotGiven[L =:= Unit])
+
+  def execute(effect: L => IO[Unit]): Route =
+    (location, previous, state) =>
+      directive.tapply(l =>
+        runEffect {
+          effect(l)
+        }
+      )(location, previous, state)
 
 private def complete[N <: fs2.dom.Node[IO]](result: Resource[IO, N]): Route = (location, _, state) => RouteResult.Matched(state, location, state.consumed, result).pure[IO]
 
@@ -392,7 +374,6 @@ def testPath[T](m: PathMatcher[T]): Directive[T] =
 
 val noneMatched: Directive0 =
   Directive[Unit] { inner => (location, previous, state) =>
-    println(s"location.otherMatched: ${location.otherMatched} ($location) (${state})")
     if (location.otherMatched) {
       rejected
     } else {
@@ -463,7 +444,14 @@ def long: PathMatcher[Long] = segment.tryParse(_.toLong)
 
 def double: PathMatcher[Double] = segment.tryParse(_.toDouble)
 
-/*private[frontroute] */
-object Frontroute:
+implicit def stringToSegment(s: String): PathMatcher[Unit] = segment(s)
+
+implicit def setToSegment(oneOf: Set[String]): PathMatcher[String] = segment(oneOf)
+
+implicit def setToSegment(oneOf: Seq[String]): PathMatcher[String] = segment(oneOf)
+
+implicit def regexToPathMatcher(r: Regex): PathMatcher[Match] = regex(r)
+
+private[frontroute] object Frontroute:
 
   val history: History[IO, Unit] = Window[IO].history[Unit]

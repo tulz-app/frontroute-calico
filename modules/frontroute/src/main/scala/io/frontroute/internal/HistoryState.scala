@@ -24,7 +24,6 @@ private[frontroute] class HistoryState(
 object HistoryState {
 
   def tryParse(raw: Option[js.UndefOr[js.Any]]): Option[HistoryState] = {
-    println(s"try parse: $raw")
     raw
       .flatMap(_.toOption).fold(
         Some(new HistoryState(js.undefined, js.undefined))
