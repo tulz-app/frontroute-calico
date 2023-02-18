@@ -11,12 +11,11 @@ inThisBuild(
     developers                          := List(Developer("yurique", "Iurii Malchenko", "i@yurique.com", url("https://github.com/yurique"))),
     description                         := "Router library for Laminar with DSL inspired by Akka HTTP.",
     Test / publishArtifact              := false,
-    scalafmtOnCompile                   := true,
+    scalafmtOnCompile                   := false,
     versionScheme                       := Some("early-semver"),
-    scalaVersion                        := ScalaVersions.v213,
+    scalaVersion                        := ScalaVersions.v3,
     crossScalaVersions                  := Seq(
       ScalaVersions.v3,
-      ScalaVersions.v213
     ),
     versionPolicyIntention              := Compatibility.BinaryCompatible,
     githubWorkflowJavaVersions          := Seq(JavaSpec.temurin("17")),
@@ -61,10 +60,10 @@ lazy val frontroute =
       name                     := "frontroute",
       libraryDependencies ++=
         Seq.concat(
-          Dependencies.laminar.value,
+          Dependencies.calico.value,
           Dependencies.`tuplez-apply`.value,
+          Dependencies.tuplez.value,
           Dependencies.scalatest.value,
-          Dependencies.domtestutils.value,
           Dependencies.`scala-js-macrotask-executor`.value.map(_ % Test)
         ),
       Test / parallelExecution := false,
@@ -127,7 +126,7 @@ lazy val root = project
   .in(file("."))
   .settings(noPublish)
   .settings(
-    name := "frontroute"
+    name := "frontroute-root"
   )
   .aggregate(
     frontroute

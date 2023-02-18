@@ -4,7 +4,7 @@ import io.frontroute.internal.PathMatchResult
 
 import scala.scalajs.js
 
-trait Directives {
+trait Directives[F[_]] {
 
   private[frontroute] def extractContext: Directive[Location] =
     Directive[Location](inner => (location, previous, state) => inner(location)(location, previous, state))
@@ -52,11 +52,8 @@ trait Directives {
 
   val extractOrigin: Directive[Option[String]] = extract(_.origin)
 
-  def provide[L](value: L): Directive[L] =
-    Directive { inner => (location, previous, state) =>
-      inner(value)(location, previous, state.enterAndSet(value))
-    }
-
+  def provide[L](value: L): Directive[L] = Directive.provide(value)
+    
   def provideOption[L](value: Option[L]): Directive[L] =
     Directive { inner => (location, previous, state) =>
       value match {

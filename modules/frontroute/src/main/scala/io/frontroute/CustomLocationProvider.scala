@@ -1,16 +1,16 @@
 package io.frontroute
 
-import com.raquo.laminar.api.L._
+import cats.Functor
+import cats.effect.IO
+import fs2.concurrent.Signal
 import io.frontroute.internal.UrlString
 
 import scala.scalajs.js
 
-class CustomLocationProvider(locationStrings: Signal[String]) extends LocationProvider {
+class CustomLocationProvider(locationStrings: Signal[IO, String]) extends LocationProvider {
 
-  val current: Signal[Option[Location]] = locationStrings.map { case UrlString(location) =>
-    Some(Location(location, js.undefined))
+  val current: Signal[IO, Option[Location]] = locationStrings.map { case UrlString(location) =>
+    Some(Location(location, Option.empty))
   }
-
-  def start()(implicit owner: Owner): Subscription = new Subscription(owner, () => {})
 
 }

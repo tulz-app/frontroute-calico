@@ -4,21 +4,27 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 
 object Dependencies {
 
-  val laminar: Def.Initialize[Seq[ModuleID]] = Def.setting {
+  val calico: Def.Initialize[Seq[ModuleID]] = Def.setting {
     Seq(
-      "com.raquo" %%% "laminar" % DependencyVersions.laminar
+      "com.armanbilge" %%% "calico" % DependencyVersions.calico
+    )
+  }
+
+  val tuplez: Def.Initialize[Seq[ModuleID]] = Def.setting {
+    Seq(
+      "app.tulz" %%% "tuplez-full-light" % DependencyVersions.tuplez
     )
   }
 
   val `tuplez-apply`: Def.Initialize[Seq[ModuleID]] = Def.setting {
     Seq(
-      "app.tulz" %%% "tuplez-apply" % DependencyVersions.`tuplez-apply`
+      "app.tulz" %%% "tuplez-apply" % DependencyVersions.tuplez
     )
   }
 
   val domtestutils: Def.Initialize[Seq[ModuleID]] = Def.setting {
     Seq(
-      "com.raquo" %%% "domtestutils" % DependencyVersions.domtestutils % Test
+//      "com.raquo" %%% "domtestutils" % DependencyVersions.domtestutils % Test
     )
   }
 

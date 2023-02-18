@@ -1,22 +1,37 @@
 package io.frontroute
 
-import com.raquo.laminar.api.L._
-import com.raquo.airstream.core.EventStream
+import io.frontroute.internal.HistoryState
+import cats.syntax.all.*
+import fs2.concurrent.Signal
+import fs2.concurrent.SignallingRef
 import org.scalajs.dom
+import calico.*
+import calico.html.*
+import calico.syntax.*
+import cats.Functor
+import cats.effect.Resource
+import cats.effect.IO
+import fs2.dom.Serializer
+
+import scala.scalajs.js
 
 trait LocationProvider {
 
-  def current: Signal[Option[Location]]
-  def start()(implicit owner: Owner): Subscription
+  def current: Signal[IO, Option[Location]]
 
 }
 
-object LocationProvider {
+object LocationProvider:
 
-  lazy val windowLocationProvider: LocationProvider = browser(windowEvents(_.onPopState))
+  lazy val windowLocationProvider: LocationProvider =
+    BrowserLocationProvider(Frontroute.history.state)
 
-  @inline def browser(popStateEvents: EventStream[dom.PopStateEvent]): LocationProvider = new BrowserLocationProvider(popStateEvents)
+//  @inline def custom(locationStrings: Signal[F, String])(using Functor[F]) = CustomLocationProvider[F](locationStrings)
 
-  @inline def custom(locationStrings: Signal[String]) = new CustomLocationProvider(locationStrings)
+object BrowserLocationProvider:
 
-}
+  def apply(state: Signal[IO, Option[js.Any]]): LocationProvider =
+    new LocationProvider:
+      val current: Signal[IO, Option[Location]] = state.map { state =>
+        Location(dom.window.location, state).some
+      }

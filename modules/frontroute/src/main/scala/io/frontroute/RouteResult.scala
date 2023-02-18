@@ -1,12 +1,11 @@
 package io.frontroute
 
-import com.raquo.laminar.api.L._
 import io.frontroute.internal.RoutingState
+import cats.effect.IO
+import cats.effect.Resource
+import fs2.dom.HtmlElement
 
-sealed trait RouteResult extends Product with Serializable
-
-object RouteResult {
-  final case class Matched(state: RoutingState, location: Location, consumed: List[String], result: () => HtmlElement) extends RouteResult
-  final case class RunEffect(state: RoutingState, location: Location, consumed: List[String], run: () => Unit)         extends RouteResult
-  case object Rejected                                                                                                 extends RouteResult
-}
+enum RouteResult:
+  case Matched(state: RoutingState, location: Location, consumed: List[String], result: Resource[IO, HtmlElement[IO]])
+  case RunEffect(state: RoutingState, location: Location, consumed: List[String], run: IO[Unit])
+  case Rejected

@@ -1,6 +1,5 @@
 package io.frontroute.internal
 
-import com.raquo.airstream.state.Var
 import scala.scalajs.js
 
 private[frontroute] object RoutingState {
@@ -92,11 +91,8 @@ final private[frontroute] class RoutingState private (
 
   override def toString: String = {
     s"""state: consumed: '${consumed.mkString("/", "/", "")}' path: '$path', data: '${data
-        .map {
-          case (key, value: Var[_]) =>
-            s"  $key -> $value (${value.signal.now()})"
-          case (key, value)         =>
-            s"  $key -> $value"
+        .map { case (key, value) =>
+          s"  $key -> $value"
         }
         .mkString("\n")}'"""
   }

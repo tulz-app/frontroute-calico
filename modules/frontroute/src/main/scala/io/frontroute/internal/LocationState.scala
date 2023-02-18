@@ -1,10 +1,18 @@
-package io.frontroute.internal
+package io.frontroute
+package internal
 
-import com.raquo.laminar.api.L._
-import io.frontroute.Location
-import io.frontroute.LocationProvider
-import io.frontroute.Route
+import cats.syntax.all.*
+import cats.effect.syntax.all.*
 import org.scalajs.dom
+import calico.*
+import calico.html.io.given
+import calico.html.io.*
+import calico.syntax.*
+import cats.effect.Async
+import cats.effect.Resource
+import cats.effect.IO
+import fs2.concurrent.Signal
+import fs2.concurrent.SignallingRef
 
 import scala.annotation.tailrec
 import scala.scalajs.js
@@ -13,7 +21,7 @@ import scala.scalajs.js.UndefOr
 @js.native
 private[internal] trait ElementWithLocationState extends js.Any {
 
-  var ____locationState: js.UndefOr[LocationState]
+  var ____locationState: js.UndefOr[Resource[IO, LocationState]]
 
 }
 
@@ -33,44 +41,100 @@ private[frontroute] class RouterStateRef {
 
 }
 
-private[frontroute] object LocationState {
+private[frontroute] object LocationState:
 
-  lazy val default: LocationState = withLocationProvider(LocationProvider.windowLocationProvider)(unsafeWindowOwner)
+  def default: Resource[IO, LocationState] = withLocationProvider(LocationProvider.windowLocationProvider)
 
-  def withLocationProvider(lp: LocationProvider)(implicit owner: Owner): LocationState = {
-    var siblingMatched = false
-    lp.current.foreach { c =>
-      println(s"=============== location provider change: ${c}, resetSiblingMatched")
-      siblingMatched = false
+  def apply(
+    _location: Signal[IO, Option[Location]],
+    _isSiblingMatched: () => Boolean,
+    _resetSiblingMatched: () => Unit,
+    _notifySiblingMatched: () => Unit,
+    _routerState: RouterStateRef
+  ): IO[LocationState] =
+    (
+      SignallingRef[IO, Option[Location]](Option.empty[Location]),
+      SignallingRef[IO, List[String]](List.empty[String]),
+    ).mapN { (remainingVar, consumedVar) =>
+      var _childMatched = false
+
+      new LocationState {
+
+        val location: Signal[IO, Option[Location]] = _location
+        def isSiblingMatched: Boolean        = _isSiblingMatched()
+
+        def resetSiblingMatched(): Unit = {
+          _resetSiblingMatched()
+        }
+
+        def notifySiblingMatched(): Unit            = _notifySiblingMatched()
+        val routerState: RouterStateRef             = _routerState
+        val remaining: Signal[IO, Option[Location]] = remainingVar
+
+        def setRemaining(remaining: Option[Location]): IO[Unit] = {
+          remainingVar.set(remaining)
+        }
+
+        val consumed: Signal[IO, List[String]] = consumedVar
+
+        def setConsumed(consumed: List[String]): IO[Unit] = {
+          consumedVar.set(consumed)
+        }
+
+        def notifyChildMatched(): Unit = {
+          _childMatched = true
+        }
+
+        def resetChildMatched(): Unit = {
+          _childMatched = false
+        }
+
+        def isChildMatched: Boolean = _childMatched
+
+      }
+
     }
 
-    val state = new LocationState(
-      location = lp.current,
-      isSiblingMatched = () => {
-        siblingMatched
-      },
-      resetSiblingMatched = () => {
-        siblingMatched = false
-      },
-      notifySiblingMatched = () => {
-        siblingMatched = true
-      },
-      routerState = new RouterStateRef,
-    )
+  def withLocationProvider(lp: LocationProvider): Resource[IO, LocationState] = {
+    var siblingMatched = false
+    lp.current.discrete
+      .evalTap { _ =>
+        IO.delay {
+          siblingMatched = false
+        }
+      }
+      .compile
+      .drain
+      .background >>
+      Resource.eval {
+        LocationState(
+          _location = lp.current,
+          _isSiblingMatched = () => {
+            siblingMatched
+          },
+          _resetSiblingMatched = () => {
+            siblingMatched = false
+          },
+          _notifySiblingMatched = () => {
+            siblingMatched = true
+          },
+          _routerState = new RouterStateRef,
+        )
+      }
 
-    lp.start()
-    state
   }
 
-  def apply(el: Element): UndefOr[LocationState] =
-    el.ref.asInstanceOf[ElementWithLocationState].____locationState
+  def forNode[N <: fs2.dom.Node[IO]](n: N): js.UndefOr[Resource[IO, LocationState]] = {
+    n.asInstanceOf[ElementWithLocationState].____locationState
+  }
 
   @tailrec
-  def closestOrDefault(node: dom.Node): LocationState = {
+  def closestOrDefault[N <: fs2.dom.Node[IO]](n: N): Resource[IO, LocationState] = {
+    val node      = n.asInstanceOf[dom.Node]
     val withState = node.asInstanceOf[ElementWithLocationState]
     if (withState.____locationState.isEmpty) {
       if (node.parentNode != null) {
-        closestOrDefault(node.parentNode)
+        closestOrDefault(node.parentNode.asInstanceOf[N])
       } else {
         withState.____locationState = default
         default
@@ -81,11 +145,12 @@ private[frontroute] object LocationState {
   }
 
   @tailrec
-  def closest(node: dom.Node): Option[LocationState] = {
+  def closest[N <: fs2.dom.Node[IO]](n: N): Option[Resource[IO, LocationState]] = {
+    val node      = n.asInstanceOf[dom.Node]
     val withState = node.asInstanceOf[ElementWithLocationState]
     if (withState.____locationState.isEmpty) {
       if (node.parentNode != null) {
-        closest(node.parentNode)
+        closest(node.parentNode.asInstanceOf[N])
       } else {
         Option.empty
       }
@@ -94,7 +159,8 @@ private[frontroute] object LocationState {
     }
   }
 
-  def initIfMissing(node: dom.Node, init: () => LocationState): LocationState = {
+  def initIfMissing[N <: fs2.dom.Node[IO]](n: N, init: () => Resource[IO, LocationState]): Resource[IO, LocationState] = {
+    val node            = n.asInstanceOf[dom.Node]
     val resultWithState = node.asInstanceOf[ElementWithLocationState]
     if (resultWithState.____locationState.isEmpty) {
       resultWithState.____locationState = init()
@@ -102,31 +168,19 @@ private[frontroute] object LocationState {
     resultWithState.____locationState.get
   }
 
-}
+private[frontroute] trait LocationState {
 
-private[frontroute] class LocationState(
-  val location: Signal[Option[Location]],
-  val isSiblingMatched: () => Boolean,
-  val resetSiblingMatched: () => Unit,
-  val notifySiblingMatched: () => Unit,
-  val routerState: RouterStateRef,
-) {
-
-  private val remainingVar                      = Var(Option.empty[Location])
-  val remaining: StrictSignal[Option[Location]] = remainingVar.signal
-
-  def setRemaining(remaining: Option[Location]): Unit = remainingVar.set(remaining)
-
-  private val consumedVar                  = Var(List.empty[String])
-  val consumed: StrictSignal[List[String]] = consumedVar.signal
-
-  def setConsumed(consumed: List[String]): Unit = {
-    consumedVar.set(consumed)
-  }
-
-  private var _childMatched          = false
-  val notifyChildMatched: () => Unit = () => { _childMatched = true }
-  val resetChildMatched: () => Unit  = () => { _childMatched = false }
-  val isChildMatched: () => Boolean  = () => _childMatched
+  val location: Signal[IO, Option[Location]]
+  def isSiblingMatched: Boolean
+  def resetSiblingMatched(): Unit
+  def notifySiblingMatched(): Unit
+  val routerState: RouterStateRef
+  val remaining: Signal[IO, Option[Location]]
+  def setRemaining(remaining: Option[Location]): IO[Unit]
+  val consumed: Signal[IO, List[String]]
+  def setConsumed(consumed: List[String]): IO[Unit]
+  def notifyChildMatched(): Unit
+  def resetChildMatched(): Unit
+  def isChildMatched: Boolean
 
 }

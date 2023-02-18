@@ -1,6 +1,6 @@
 package io.frontroute.internal
 
-sealed abstract class PathMatchResult[+A] extends Product with Serializable {
+enum PathMatchResult[+A]:
 
   def map[B](f: A => B): PathMatchResult[B] = this match {
     case PathMatchResult.NoMatch                      => PathMatchResult.NoMatch
@@ -8,18 +8,14 @@ sealed abstract class PathMatchResult[+A] extends Product with Serializable {
     case PathMatchResult.Match(value, consumed, tail) => PathMatchResult.Match(f(value), consumed, tail)
   }
 
-}
+  case NoMatch extends PathMatchResult[Nothing]
 
-object PathMatchResult {
-
-  case object NoMatch extends PathMatchResult[Nothing]
-  case class Rejected[T](
+  case Rejected[T](
     tail: List[String]
   ) extends PathMatchResult[T]
-  case class Match[T](
+
+  case Match[T](
     value: T,
     consumed: List[String],
     tail: List[String]
   ) extends PathMatchResult[T]
-
-}

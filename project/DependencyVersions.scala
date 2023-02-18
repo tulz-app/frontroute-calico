@@ -1,9 +1,8 @@
 object DependencyVersions {
 
-  val laminar                     = "15.0.0-M4"
-  val `tuplez-apply`              = "0.3.8"
+  val calico                      = "0.2.0-M2"
+  val tuplez                      = "0.3.8"
   val utest                       = "0.8.0"
-  val domtestutils                = "0.16.0-RC5"
   val scalatest                   = "3.2.15"
   val jsdom                       = "16.4.0"
   val `scalajs-java-securerandom` = "1.0.0"

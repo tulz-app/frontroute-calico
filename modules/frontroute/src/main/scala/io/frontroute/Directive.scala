@@ -1,12 +1,16 @@
 package io.frontroute
 
-import com.raquo.laminar.api.L._
 import io.frontroute.ops.DirectiveOfOptionOps
+import fs2.concurrent.Signal
+import cats.effect.IO
+import fs2.concurrent.SignallingRef
 
 class Directive[L](
   val tapply: (L => Route) => Route
-) {
+) extends ((L => Route) => Route):
   self =>
+
+  def apply(a: L => Route): Route = tapply(a)
 
   def flatMap[R](next: L => Directive[R]): Directive[R] = {
     Directive[R] { inner =>
@@ -36,12 +40,12 @@ class Directive[L](
     this.flatMap { value =>
       f(value).fold(
         _ => reject,
-        r => provide(r)
+        r => Directive.provide(r)
       )
     }
 
   def opt: Directive[Option[L]] =
-    this.map(v => Option(v)) | provide(None)
+    this.map(v => Option(v)) | Directive.provide(None)
 
   @inline def some: Directive[Option[L]] = map(Some(_))
 
@@ -89,24 +93,27 @@ class Directive[L](
       }
     }
 
-  def signal: Directive[StrictSignal[L]] =
-    new Directive[StrictSignal[L]]({ inner => (location, previous, state) =>
-      this.tapply { value => (location, previous, state) =>
-        val next = state.unsetValue().enter
-        previous.getValue[Var[L]](next.path.key) match {
-          case None              =>
-            val newVar = Var(value)
-            inner(newVar.signal)(location, previous, next.setValue(newVar))
-          case Some(existingVar) =>
-            existingVar.set(value)
-            inner(existingVar.signal)(location, previous, next.setValue(existingVar))
-        }
-      }(location, previous, state)
-    })
+  // def signal: Directive[Signal[IO, L]] =
+  //   new Directive[Signal[IO, L]]({ inner => (location, previous, state) =>
+  //     this.tapply { value => (location, previous, state) =>
+  //       val next = state.unsetValue().enter
+  //       previous.getValue[SignallingRef[IO, L]](next.path.key) match {
+  //         case None              =>
+  //           val newVar = Var(value)
+  //           inner(newVar.signal)(location, previous, next.setValue(newVar))
+  //         case Some(existingVar) =>
+  //           existingVar.set(value)
+  //           inner(existingVar)(location, previous, next.setValue(existingVar))
+  //       }
+  //     }(location, previous, state)
+  //   })
 
-}
+object Directive:
 
-object Directive {
+  def provide[L](value: L): Directive[L] =
+    Directive { inner => (location, previous, state) =>
+      inner(value)(location, previous, state.enterAndSet(value))
+    }
 
   def apply[L](f: (L => Route) => Route): Directive[L] = {
     new Directive[L](inner =>
@@ -120,5 +127,3 @@ object Directive {
   }
 
   implicit def directiveOfOptionSyntax[A](underlying: Directive[Option[A]]): DirectiveOfOptionOps[A] = new DirectiveOfOptionOps[A](underlying)
-
-}

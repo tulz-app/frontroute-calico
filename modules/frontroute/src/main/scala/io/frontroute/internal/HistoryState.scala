@@ -1,5 +1,7 @@
 package io.frontroute.internal
 
+import cats.effect.IO
+import fs2.dom.Serializer
 import org.scalajs.dom
 
 import scala.scalajs.js
@@ -21,10 +23,10 @@ private[frontroute] class HistoryState(
 
 object HistoryState {
 
-  def tryParse(raw: js.UndefOr[js.Any]): Option[HistoryState] = {
-    if (js.isUndefined(raw) || raw == null) {
+  def tryParse(raw: Option[js.Any]): Option[HistoryState] = {
+    raw.fold(
       Some(new HistoryState(js.undefined, js.undefined))
-    } else {
+    ) { raw =>
       val state = raw.asInstanceOf[HistoryState]
       if (state.frontroute.contains("frontroute")) {
         Some(state)

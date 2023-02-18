@@ -1,9 +1,12 @@
 package io.frontroute
 
-import com.raquo.laminar.api.L._
 import io.frontroute.internal.UrlString
 import org.scalajs.dom
+
 import scala.scalajs.js
+import calico.html.Modifier
+import cats.effect.IO
+import cats.effect.Resource
 
 object LinkHandler {
 
@@ -38,16 +41,6 @@ object LinkHandler {
     }
   }
 
-  val bind: Modifier[Element] =
-    onMountUnmountCallback(
-      { ctx =>
-        ctx.thisNode.ref.addEventListener("click", clickListener)
-      },
-      { el =>
-        el.ref.removeEventListener("click", clickListener)
-      }
-    )
-
   @scala.annotation.tailrec
   private def findParent(nodeName: String, element: dom.Node): js.UndefOr[dom.Node] = {
     if (js.isUndefined(element) || element == null) {
@@ -60,5 +53,11 @@ object LinkHandler {
       }
     }
   }
+
+  given [N <: fs2.dom.HtmlElement[IO]]: Modifier[IO, N, LinkHandler.type] =
+    (_, e) =>
+      Resource.make(
+        IO { e.asInstanceOf[dom.HTMLElement].addEventListener("click", clickListener) }
+      )(_ => IO { e.asInstanceOf[dom.HTMLElement].removeEventListener("click", clickListener) })
 
 }
