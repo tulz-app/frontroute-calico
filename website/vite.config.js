@@ -14,6 +14,9 @@ export default ({ mode }) => {
       port: 6080,
     },
     publicDir: './src/main/public',
+    build: {
+      outDir: 'dist/v/0.17.x-calico',
+    },
     plugins: [
       // ...(process.env.NODE_ENV === 'production' ? [
       //   minifyHtml(),

@@ -11,7 +11,7 @@ class Site(
   highlightStyle: Signal[IO, String]
 ) {
 
-  val frontrouteVersion: String = "0.17.x"
+  val frontrouteVersion: String = "0.17.x-calico"
 
   val thisVersionPrefix = s"/v/$frontrouteVersion/"
 

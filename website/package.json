@@ -45,7 +45,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --base=/v/0.17.x-calico/",
     "serve": "vite preview"
   }
 }
