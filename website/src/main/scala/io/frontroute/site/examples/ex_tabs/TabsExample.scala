@@ -32,7 +32,7 @@ object TabsExample
       import fs2.*
       import fs2.concurrent.*
 
-      val tabs = Seq(
+      val tabs = List(
         "tab-1" -> "Tab 1",
         "tab-2" -> "Tab 2",
       )
@@ -44,6 +44,32 @@ object TabsExample
             cls := "space-y-2",
             div(
               cls := "flex space-x-2",
+              // ---
+//              a(
+//                relativeHref("tab-1"),
+//                /* <focus> */
+//                navMod { active =>
+//                  cls <-- active.ifF(
+//                    List("text-xl px-4 py-1 rounded border-b-2 border-blue-800 bg-blue-200 text-blue-800"),
+//                    List("text-xl px-4 py-1 rounded border-b-2 border-transparent text-blue-700")
+//                  )
+//                },
+//                /* </focus> */
+//                "Tab 1"
+//              ),
+//              a(
+//                relativeHref("tab-2"),
+//                /* <focus> */
+//                navMod { active =>
+//                  cls <-- active.ifF(
+//                    List("text-xl px-4 py-1 rounded border-b-2 border-blue-800 bg-blue-200 text-blue-800"),
+//                    List("text-xl px-4 py-1 rounded border-b-2 border-transparent text-blue-700")
+//                  )
+//                },
+//                /* </focus> */
+//                "Tab 2"
+//              ),
+              // ---
               tabs.map { case (path, tabLabel) =>
                 a(
                   relativeHref(path),

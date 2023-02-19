@@ -66,24 +66,28 @@ class Routes(
       )
       .flatMap { mobileMenuContent =>
         div(
-          LinkHandler,
-          thisVersionPrefix {
-            (
-              pathEnd.mapTo((site.indexModule, site.indexModule.index).some) |
-                (modulePrefix & pathEnd).map(m => (m, m.index).some) |
-                moduleAndPagePrefix.map(moduleAndPage => moduleAndPage.some)
-            ).signal { moduleAndPage =>
-              PageWrap(moduleAndPage, mobileMenuContent, site, highlightStyle)
-            }
-          },
-          (noneMatched & anyVersionPrefix) {
-            div("Not Found - wrong version")
-          },
-          (noneMatched & extractUnmatchedPath) { unmatched =>
-            div(s"Not Found! - $unmatched")
-          }
+          cls := "contents",
+          routes(
+            div(
+              LinkHandler,
+              thisVersionPrefix {
+                (
+                  pathEnd.mapTo((site.indexModule, site.indexModule.index).some) |
+                    (modulePrefix & pathEnd).map(m => (m, m.index).some) |
+                    moduleAndPagePrefix.map(moduleAndPage => moduleAndPage.some)
+                ).signal { moduleAndPage =>
+                  PageWrap(moduleAndPage, mobileMenuContent, site, highlightStyle)
+                }
+              },
+              (noneMatched & anyVersionPrefix) {
+                div("Not Found - wrong version")
+              },
+              (noneMatched & extractUnmatchedPath) { unmatched =>
+                div(s"Not Found! - $unmatched")
+              }
+            )
+          )
         )
-
       }
 
 //    val _ = com.raquo.laminar.api.L.render(menuContainer, TW.modal(mobileMenuContent.signal, mobileMenuModal))

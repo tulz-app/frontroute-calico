@@ -35,8 +35,8 @@ class Site(
       index = docPage("", "frontroute", FileAsString("/doc/index.md"))
     )
 
-  val examples: Seq[CodeExample] =
-    Seq(
+  val examples: List[CodeExample] =
+    List(
       io.frontroute.site.examples.ex_basic.BasicRoutingExample,
       io.frontroute.site.examples.ex_path_matching.PathMatchingExample,
       io.frontroute.site.examples.ex_recursive_path_matching.RecursivePathMatchingExample,
@@ -51,13 +51,13 @@ class Site(
       io.frontroute.site.examples.ex_matched_path.MatchedPathExample,
     )
 
-  val modules: Seq[SiteModule] = Seq(
+  val modules: List[SiteModule] = List(
     indexModule,
     SiteModule(
       path = "getting-started",
       title = "Getting started",
       index = docPage("", "", FileAsString("/doc/getting-started/index.md")),
-      ""                   -> Seq(
+      ""                   -> List(
         docPage("laminar-basics", "Laminar basics", FileAsString("/doc/getting-started/laminar-basics.md")),
         docPage("first-routes", "First routes", FileAsString("/doc/getting-started/first-routes.md")),
         docPage("handling-not-found", "Handling 'Not Found'", FileAsString("/doc/getting-started/handling-not-found.md")),
@@ -70,27 +70,27 @@ class Site(
       path = "reference",
       title = "Reference",
       index = docPage("", "Reference", FileAsString("/doc/reference/index.md")),
-      "Directives"         -> Seq(
+      "Directives"         -> List(
         docPage("directives", "Built-in directives", FileAsString("/doc/reference/built-in-directives.md")),
         docPage("signal-directive", ".signal directive", FileAsString("/doc/reference/signal-directive.md")),
         docPage("conjunction", "conjunction (&)", FileAsString("/doc/reference/conjunction.md")),
         docPage("disjunction", "disjunction (|)", FileAsString("/doc/reference/disjunction.md")),
         docPage("directive-combinators", "Directive combinators", FileAsString("/doc/reference/directive-combinators.md")),
       ),
-      "Path Matchers"      -> Seq(
+      "Path Matchers"      -> List(
         docPage("path-matchers", "Built-in path matchers", FileAsString("/doc/reference/built-in-path-matchers.md")),
         docPage("path-matcher-combinators", "Path matcher combinators", FileAsString("/doc/reference/path-matcher-combinators.md"))
       ),
-      "Alternative Routes" -> Seq(
+      "Alternative Routes" -> List(
         docPage("first-match", "firstMatch", FileAsString("/doc/reference/first-match.md"))
       ),
-      "Utilities"          -> Seq(
+      "Utilities"          -> List(
         docPage("navigation", "Browser navigation", FileAsString("/doc/reference/navigation.md")),
       ),
-      "Extending"          -> Seq(
+      "Extending"          -> List(
         docPage("custom-directives", "Custom directives", FileAsString("/doc/reference/custom-directives.md"))
       ),
-      "Under the hood"     -> Seq(
+      "Under the hood"     -> List(
         docPage("route", "Route", FileAsString("/doc/reference/under-the-hood/route.md")),
         docPage("directive", "Directive", FileAsString("/doc/reference/under-the-hood/directive.md")),
         docPage("path-matching", "Path-matching", FileAsString("/doc/reference/under-the-hood/path-matching.md")),

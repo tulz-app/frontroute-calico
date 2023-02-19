@@ -4,7 +4,7 @@ object Styles {
 
 //  private val highlightStyle: StoredString = storedString("highlight-style", "an-old-hope")
 
-  val styles = Seq(
+  val styles: List[String] = List(
     "a11y-dark",
     "a11y-light",
     "agate",

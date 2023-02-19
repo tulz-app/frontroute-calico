@@ -50,8 +50,6 @@ private[frontroute] object RouterStateRef:
 
 private[frontroute] object LocationState:
 
-  private[frontroute] def defaultLocationState: LocationState = IORoutesApp.defaultLocationState
-
   def apply(
     _location: Signal[IO, Option[Location]],
     _isSiblingMatched: IO[Boolean],
@@ -113,28 +111,23 @@ private[frontroute] object LocationState:
         }
     }
 
-  def forNode[N <: fs2.dom.Node[IO]](n: N): IO[js.UndefOr[LocationState]] =
-    IO {
-      n.asInstanceOf[ElementWithLocationState].____locationState
-    }
-
-  @tailrec
-  def closestOrDefault[N <: fs2.dom.Node[IO]](n: N): IO[LocationState] = { 
+  def closestOrFail[N <: fs2.dom.Node[IO]](n: N): IO[LocationState] = {
     val node      = n.asInstanceOf[dom.Node]
     val withState = node.asInstanceOf[ElementWithLocationState]
-    if (withState.____locationState.isEmpty) {
-      if (node.parentNode != null) {
-//        dom.console.log("no location state, have parent", n)
-        closestOrDefault(node.parentNode.asInstanceOf[N])
+    IO(withState.____locationState).flatMap { locationState =>
+      if (locationState.isEmpty) {
+        if (node.parentNode != null) {
+          dom.console.log("no location state, have parent", n)
+          closestOrFail(node.parentNode.asInstanceOf[N])
+        } else {
+          dom.console.log("no location state, no parent", n)
+          dom.console.log("no location state", n)
+          IO.raiseError(new RuntimeException("location provider not configured"))
+        }
       } else {
-//        dom.console.log("no location state, no parent, using default", n)
-        IO {
-          withState.____locationState = defaultLocationState
-        }.as(defaultLocationState)
-      }
-    } else {
 //      dom.console.log("closest found!", n)
-      withState.____locationState.get.pure[IO]
+        withState.____locationState.get.pure[IO]
+      }
     }
   }
 
@@ -153,16 +146,15 @@ private[frontroute] object LocationState:
     }
   }
 
-  def initIfMissing[N <: fs2.dom.Node[IO]](n: N, init: Resource[IO, LocationState]): IO[LocationState] = {
+  def init[N <: fs2.dom.Node[IO]](n: N, init: LocationState): IO[Unit] = {
     val node            = n.asInstanceOf[dom.Node]
     val resultWithState = node.asInstanceOf[ElementWithLocationState]
     if (resultWithState.____locationState.isEmpty) {
-      init.use { init =>
-        IO {
+      dom.console.log("initializing location state", n)
+      IO {
 //          dom.console.log("init location state", node)
 //          node.asInstanceOf[dom.HTMLElement].dataset.addOne("frLocationState", "initialized")
-          resultWithState.____locationState = init
-        }.as(init)
+        resultWithState.____locationState = init
       }
     } else {
       IO.raiseError(new RuntimeException("location state already initialized"))

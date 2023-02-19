@@ -19,6 +19,7 @@ import calico.html.io.given
 import calico.html.io.*
 import fs2.dom.*
 import calico.syntax.*
+import cats.effect.OutcomeIO
 import cats.effect.*
 import cats.effect.std.Hotswap
 import cats.effect.syntax.all.*
@@ -37,7 +38,23 @@ type PathMatcher0 = PathMatcher[Unit]
 
 type Directive0 = Directive[Unit]
 
-def locationProvider(lp: LocationProvider): SetLocationProvider = SetLocationProvider(lp)
+case class StartRoutes[M](
+  lp: LocationProvider,
+  mods: M
+)
+
+object StartRoutes:
+
+  given [N <: fs2.dom.Node[IO], M](using M: Modifier[IO, N, M]): Modifier[IO, N, StartRoutes[M]] =
+    (m, e) =>
+      LocationState.withLocationProvider(m.lp).evalTap { locationState =>
+        LocationState.init(e, locationState).void
+      } >> M.modify(m.mods, e)
+
+def routes[N <: fs2.dom.Node[IO], M](mods: M): StartRoutes[M] =
+  StartRoutes(LocationProvider.windowLocationProvider, mods)
+
+def withLocationProvider[N <: fs2.dom.Node[IO], M](lp: LocationProvider)(mods: M): StartRoutes[M] = StartRoutes(lp, mods)
 
 implicit def directiveOfOptionSyntax[L](underlying: Directive[Option[L]]): DirectiveOfOptionOps[L] = new DirectiveOfOptionOps(underlying)
 
@@ -170,23 +187,25 @@ object NavMod:
                 }
               }
             )(obs => IO.delay { obs.disconnect() }).flatMap { _ =>
-              Resource
-                .eval(LocationState.closestOrDefault(e))
+              fs2.Stream
+                .eval(IO.cede >> LocationState.closestOrFail(e))
                 .flatMap { locationState =>
-                  fs2.Stream
-                    .emit[IO, Unit](()).merge(mutations.stream.void)
+                  mutations.stream
                     .evalMap(_ => locationState.location.get)
                     .merge(locationState.location.discrete)
                     .map { location =>
                       val UrlString(url) = e.asInstanceOf[dom.HTMLAnchorElement].href
+                      println(s"nav mod: $location ${url.pathname} --- ${location.exists { location =>
+                          m.compare(location, url)
+                        }}")
                       location.exists { location =>
                         m.compare(location, url)
                       }
                     }
-                    .holdResource(false)
-                    .flatMap { active =>
-                      M.modify(m.mod(active), e)
-                    }
+                }
+                .holdResource(false)
+                .flatMap { active =>
+                  M.modify(m.mod(active), e)
                 }
             }
         }
@@ -225,12 +244,15 @@ object WithMatchedPathAndEl:
           Resource.eval(LocationState.closest(e)).flatMap {
             case None                =>
               Hotswap.create[IO, IO[OutcomeIO[Unit]]].flatMap { hs =>
-
                 Resource.eval {
                   hs.swap(
-                    LocationState.defaultLocationState.consumed.discrete
+                    fs2.Stream
+                      .eval(IO.cede >> LocationState.closestOrFail(e))
+                      .flatMap { closest =>
+                        closest.consumed.discrete
+                      }
                       .foreach { consumed =>
-                        LocationState.closest(e).flatMap {
+                        (IO.cede >> LocationState.closest(e)).flatMap {
                           case None                =>
                             consumedVar.set(consumed)
                           case Some(locationState) =>

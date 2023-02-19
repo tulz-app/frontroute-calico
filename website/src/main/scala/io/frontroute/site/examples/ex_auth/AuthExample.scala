@@ -87,7 +87,7 @@ object AuthExample
         render               <- div(
                                   div(
                                     cls := "p-4 min-h-[300px]",
-                                    Resource.pure(route)
+                                    route
                                   ),
                                   div(
                                     cls := "bg-blue-900 -mx-6 p-2 space-y-2",

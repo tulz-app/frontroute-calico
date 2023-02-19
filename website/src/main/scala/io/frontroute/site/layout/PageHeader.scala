@@ -107,7 +107,7 @@ object PageHeader {
                                    aria.labelledBy  := "options-menu",
                                    div(
                                      cls := "mb-2",
-                                     Resource.pure(searchInput)
+                                     searchInput
                                    ),
                                    Styles.styles.map { styleName =>
                                      button(
@@ -127,14 +127,16 @@ object PageHeader {
                                          styleName
                                        ),
                                        highlightStyle
-                                         .map(_ == styleName).map(b =>
-                                           Option.when(b)(
-                                             span(
-                                               "V"
-                                               //                                               Icons.check(svg.cls := "h-6 text-green-500 fill-current")
+                                         .map(_ == styleName)
+                                         .map { b =>
+                                           Option
+                                             .when(b)(
+                                               span(
+                                                 "V"
+                                                 //                                               Icons.check(svg.cls := "h-6 text-green-500 fill-current")
+                                               )
                                              )
-                                           )
-                                         ),
+                                         },
                                      )
                                    }
                                  )

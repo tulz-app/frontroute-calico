@@ -98,10 +98,10 @@ object CodeExampleDisplay {
         )
       }
 
-      val tabs = Seq(
+      val tabs = List(
         "live"   -> "Live Demo",
         "source" -> "Source Code",
-      ) ++ Seq("description" -> "Description").filter(_ => example.description.trim.nonEmpty)
+      ) ++ List("description" -> "Description").filterNot(_ => example.description.trim.isEmpty)
 
       div(
         cls := "flex-1 flex flex-col space-y-4",
@@ -134,25 +134,26 @@ object CodeExampleDisplay {
               cls <-- tab.map(_ != "source").ifF(List("hidden"), List("flex-1 flex flex-col space-y-2")),
               div(
                 cls := "flex space-x-4 items-center",
-                Option.when(hasContext) {
-                  label(
-                    cls := "btn-sm-text-blue flex-shrink-0 flex space-x-1 items-center cursor-pointer",
-                    input.withSelf((el: HtmlInputElement[IO]) =>
-                      (
-                        tpe := "checkbox",
-                        checked <-- dimContext,
-                        onClick --> {
-                          _.foreach { e =>
-                            el.checked.get.flatMap(dimContext.set)
+                Option
+                  .when(hasContext) {
+                    label(
+                      cls := "btn-sm-text-blue flex-shrink-0 flex space-x-1 items-center cursor-pointer",
+                      input.withSelf((el: HtmlInputElement[IO]) =>
+                        (
+                          tpe := "checkbox",
+                          checked <-- dimContext,
+                          onClick --> {
+                            _.foreach { e =>
+                              el.checked.get.flatMap(dimContext.set)
+                            }
                           }
-                        }
+                        )
+                      ),
+                      span(
+                        "highlight relevant code"
                       )
-                    ),
-                    span(
-                      "highlight relevant code"
                     )
-                  )
-                }
+                  }.toList
               ),
               div(
                 cls := "flex-1 shadow relative overflow-x-auto",
@@ -251,39 +252,44 @@ object CodeExampleDisplay {
                     )
                   }
       render   <- div(
-                    cls := "border-4 border-dashed border-blue-400 bg-blue-300 text-blue-900 rounded-lg p-6",
-                    LinkHandler,
-                    div(
-                      cls := "-mx-6 -mt-6 p-2 rounded-t-lg bg-blue-500 flex space-x-1",
-                      Resource.pure(urlInput),
-                      button(
-                        cls := "btn-md-outline-white",
-                        "Go!",
-                        onClick --> {
-                          _.foreach { _ =>
-                            urlInput.value.get.flatMap { case UrlString(url) =>
-                              BrowserNavigation.pushState(url = pathAndSearch(url))
+                    cls := "contents",
+                    routes(
+                      div(
+                        cls := "border-4 border-dashed border-blue-400 bg-blue-300 text-blue-900 rounded-lg p-6",
+                        LinkHandler,
+                        div(
+                          cls := "-mx-6 -mt-6 p-2 rounded-t-lg bg-blue-500 flex space-x-1",
+                          urlInput,
+                          button(
+                            cls := "btn-md-outline-white",
+                            "Go!",
+                            onClick --> {
+                              _.foreach { _ =>
+                                urlInput.value.get.flatMap { case UrlString(url) =>
+                                  BrowserNavigation.pushState(url = pathAndSearch(url))
+                                }
+                              }
                             }
-                          }
-                        }
-                      )
-                    ),
-                    example.code.value(),
-                    div(
-                      cls := "rounded-b-lg bg-blue-900 -mx-6 -mb-6 p-2",
-                      div(
-                        cls := "font-semibold text-xl text-blue-200",
-                        "Navigation"
-                      ),
-                      div(
-                        cls := "flex flex-col p-2",
-                        example.links.map { path =>
-                          a(
-                            cls  := "text-blue-300 hover:text-blue-100",
-                            href := path,
-                            s"➜ $path"
                           )
-                        }
+                        ),
+                        example.code.value(),
+                        div(
+                          cls := "rounded-b-lg bg-blue-900 -mx-6 -mb-6 p-2",
+                          div(
+                            cls := "font-semibold text-xl text-blue-200",
+                            "Navigation"
+                          ),
+                          div(
+                            cls := "flex flex-col p-2",
+                            example.links.toList.map { path =>
+                              a(
+                                cls  := "text-blue-300 hover:text-blue-100",
+                                href := path,
+                                s"➜ $path"
+                              )
+                            }
+                          )
+                        )
                       )
                     )
                   )

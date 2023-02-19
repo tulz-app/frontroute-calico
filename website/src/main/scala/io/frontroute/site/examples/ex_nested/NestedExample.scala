@@ -30,7 +30,7 @@ object NestedExample
       import fs2.*
       import fs2.concurrent.*
 
-      val tabs = Seq(
+      val tabs = List(
         "tab-1" -> "Tab 1",
         "tab-2" -> "Tab 2",
       )

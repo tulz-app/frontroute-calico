@@ -28,21 +28,21 @@ object PageNavigation {
   ): Resource[IO, HtmlElement[IO]] = {
     val classes = List("py-4 overflow-auto bg-gray-800 text-white") ++ (if (mobile) List.empty else List("w-80 hidden lg:block"))
     navTag(
-      cls <-- hidden.ifF("hidden" :: classes, classes),
+      cls <-- hidden.ifF(List("hidden"), classes),
       page.map {
-        case None              => None
-        case Some((module, _)) =>
+        _.map { case (module, _) =>
           div(
             cls := List("space-y-4"),
-            Option.when(module.index.title.nonEmpty) {
-              navigationItem(page, module.index) {
-                a(
-                  cls  := List("ml-2 flex text-xl font-display font-bold"),
-                  href := site.thisVersionHref(s"/${module.path}"),
-                  (module.index.title: String)
-                )
-              }
-            },
+            Option
+              .when(module.index.title.nonEmpty) {
+                navigationItem(page, module.index) {
+                  a(
+                    cls  := List("ml-2 flex text-xl font-display font-bold"),
+                    href := site.thisVersionHref(s"/${module.path}"),
+                    module.index.title
+                  )
+                }
+              },
             module.navigation.map { case (title, pages) =>
               div(
                 Option.when(title.nonEmpty) {
@@ -62,7 +62,8 @@ object PageNavigation {
                 }
               )
             }
-          ).some
+          )
+        }
       }
     )
   }

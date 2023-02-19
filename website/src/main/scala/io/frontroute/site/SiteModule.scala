@@ -4,7 +4,7 @@ class SiteModule private (
   val path: String,
   val title: String,
   val index: Page,
-  val navigation: Seq[(String, Seq[Page])]
+  val navigation: List[(String, List[Page])]
 ) {
 
   def findPage(path: String): Option[Page] = {
@@ -19,7 +19,7 @@ object SiteModule {
     path: String,
     title: String,
     index: Page,
-    navigation: (String, Seq[Page])*
-  ): SiteModule = new SiteModule(path, title, index, navigation)
+    navigation: (String, List[Page])*
+  ): SiteModule = new SiteModule(path, title, index, navigation.toList)
 
 }
