@@ -11,7 +11,7 @@ import fs2.concurrent.*
 import io.frontroute.*
 import io.frontroute.given
 
-object Main extends IOWebApp {
+object Main extends IORoutesApp {
 
   def Counter(label: String, initialStep: Int) =
     SignallingRef[IO].of(initialStep).product(Channel.unbounded[IO, Int]).toResource.flatMap { (step, diff) =>
@@ -99,7 +99,7 @@ object Main extends IOWebApp {
       )
     }
 
-  def render = div(
+  def renderRoutes = div(
     cls := "p-4",
     h1(cls := "text-lg font-medium", "Let's count!"),
     Counter("Sheep", initialStep = 3)

@@ -2,6 +2,7 @@ package io.frontroute
 
 import app.tulz.tuplez.ApplyConverter
 import app.tulz.tuplez.ApplyConverters
+import calico.html.HtmlAttr
 import calico.html.Modifier
 import io.frontroute.internal.LocationState
 import io.frontroute.internal.UrlString
@@ -19,6 +20,7 @@ import calico.html.io.*
 import fs2.dom.*
 import calico.syntax.*
 import cats.effect.*
+import cats.effect.std.Hotswap
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
@@ -118,53 +120,19 @@ private def makeRelative(matched: List[String], path: String): String =
     }
   }
 
-//def navigate(
-//  to: String,
-//  replace: Boolean = false,
-//): Route =
-//  extractMatchedPath { matched =>
-//    runEffect {
-//      if (replace) {
-//        BrowserNavigation.replaceState(url = makeRelative(matched, to))
-//      } else {
-//        BrowserNavigation.pushState(url = makeRelative(matched, to))
-//      }
-//    }
-//  }
-
-//def withMatchedPath[Ref <: dom.html.Element](mod: StrictSignal[List[String]] => Mod[ReactiveHtmlElement[Ref]]): Mod[ReactiveHtmlElement[Ref]] = {
-//  val consumedVar = Var(List.empty[String])
-//  var sub: js.UndefOr[DynamicSubscription] = js.undefined
-//
-//  Seq(
-//    onMountCallback { (ctx: MountContext[ReactiveHtmlElement[Ref]]) =>
-//      LocationState.closest(ctx.thisNode.ref) match {
-//        case None =>
-//          sub = ReactiveElement.bindFn(ctx.thisNode, LocationState.default.consumed) { next =>
-//            LocationState.closest(ctx.thisNode.ref) match {
-//              case None => consumedVar.set(next)
-//              case Some(locationState) =>
-//                sub.foreach(_.kill())
-//                sub = js.undefined
-//                // managed subscription
-//                val _ = ReactiveElement.bindObserver(ctx.thisNode, locationState.consumed)(consumedVar.writer)
-//            }
-//          }
-//        case Some(locationState) =>
-//          // managed subscription
-//          val _ = ReactiveElement.bindObserver(ctx.thisNode, locationState.consumed)(consumedVar.writer)
-//      }
-//    },
-//    mod(consumedVar.signal)
-//  )
-//}
-//
-//def relativeHref(path: String): Mod[ReactiveHtmlElement[html.Anchor]] =
-//  withMatchedPath { matched =>
-//    href <-- matched.map { matched =>
-//      makeRelative(matched, path)
-//    }
-//  }
+def navigate(
+  to: String,
+  replace: Boolean = false,
+): Route =
+  extractMatchedPath { matched =>
+    runEffect {
+      if (replace) {
+        BrowserNavigation.replaceState(url = makeRelative(matched, to))
+      } else {
+        BrowserNavigation.pushState(url = makeRelative(matched, to))
+      }
+    }
+  }
 
 case class NavMod[M](
   compare: (io.frontroute.Location, org.scalajs.dom.Location) => Boolean,
@@ -202,22 +170,24 @@ object NavMod:
                 }
               }
             )(obs => IO.delay { obs.disconnect() }).flatMap { _ =>
-              Resource.eval(LocationState.closestOrDefault(e)).flatMap { locationState =>
-                fs2.Stream
-                  .emit[IO, Unit](()).merge(mutations.stream.void)
-                  .evalMap(_ => locationState.location.get)
-                  .merge(locationState.location.discrete)
-                  .map { location =>
-                    val UrlString(url) = e.asInstanceOf[dom.HTMLAnchorElement].href
-                    location.exists { location =>
-                      m.compare(location, url)
+              Resource
+                .eval(LocationState.closestOrDefault(e))
+                .flatMap { locationState =>
+                  fs2.Stream
+                    .emit[IO, Unit](()).merge(mutations.stream.void)
+                    .evalMap(_ => locationState.location.get)
+                    .merge(locationState.location.discrete)
+                    .map { location =>
+                      val UrlString(url) = e.asInstanceOf[dom.HTMLAnchorElement].href
+                      location.exists { location =>
+                        m.compare(location, url)
+                      }
                     }
-                  }
-                  .holdResource(false)
-                  .flatMap { active =>
-                    M.modify(m.mod(active), e)
-                  }
-              }
+                    .holdResource(false)
+                    .flatMap { active =>
+                      M.modify(m.mod(active), e)
+                    }
+                }
             }
         }
     }
@@ -240,38 +210,62 @@ def navModExact[M](mod: Signal[IO, Boolean] => M): NavMod[M] = NavMod(
 
 // --
 
-// private[frontroute] def withMatchedPathAndEl[N <: fs2.dom.Node[IO], O](
-//   body: (N, Signal[IO, List[String]]) => O
-// ): O = {
-//   SignallingRef.of[IO, List[String]](List.empty).map { consumedVar =>
-//     LocationState.closest(el.ref) match {
-//       case None                =>
-//         sub = ReactiveElement.bindFn(el, LocationState.default.consumed) { next =>
-//           LocationState.closest(el.ref) match {
-//             case None                => consumedVar.set(next)
-//             case Some(locationState) =>
-//               sub.foreach(_.kill())
-//               sub = js.undefined
-//               // managed subscription
-//               val _ = ReactiveElement.bindObserver(el, locationState.consumed)(consumedVar.writer)
-//           }
-//         }
-//       case Some(locationState) =>
-//         // managed subscription
-//         val _ = ReactiveElement.bindObserver(el, locationState.consumed)(consumedVar.writer)
-//     }
-//     body(el, consumedVar.signal)
-//   }
-// }
+case class WithMatchedPathAndEl[N, M](
+  body: (N, Signal[IO, List[String]]) => M
+)
 
-// def withMatchedPath[Ref <: dom.html.Element](mod: StrictSignal[List[String]] => Mod[ReactiveHtmlElement[Ref]]): Mod[ReactiveHtmlElement[Ref]] = {
-//   withMatchedPathAndEl((_, consumed) => mod(consumed))
-// }
+object WithMatchedPathAndEl:
 
-// def relativeHref(path: String): Mod[ReactiveHtmlElement[html.Anchor]] =
-//   withMatchedPath { matched =>
-//     href <-- matched.map(_.mkString("/", "/", s"/$path"))
-//   }
+  given [N <: fs2.dom.Node[IO], M](using M: Modifier[IO, N, M]): Modifier[IO, N, WithMatchedPathAndEl[N, M]] =
+    (m, e) => {
+      Resource
+        .eval(
+          SignallingRef.of[IO, List[String]](List.empty)
+        ).flatMap { consumedVar =>
+          Resource.eval(LocationState.closest(e)).flatMap {
+            case None                =>
+              Hotswap.create[IO, IO[OutcomeIO[Unit]]].flatMap { hs =>
+
+                Resource.eval {
+                  hs.swap(
+                    LocationState.defaultLocationState.consumed.discrete
+                      .foreach { consumed =>
+                        LocationState.closest(e).flatMap {
+                          case None                =>
+                            consumedVar.set(consumed)
+                          case Some(locationState) =>
+                            hs.swap(
+                              locationState.consumed.discrete
+                                .foreach(consumedVar.set)
+                                .compile.drain.background
+                            ).void
+                        }
+                      }
+                      .compile.drain.background
+                  )
+                }
+              }
+            case Some(locationState) =>
+              locationState.consumed.discrete.foreach(consumedVar.set).compile.drain.background
+          } >>
+            M.modify(m.body(e, consumedVar), e)
+        }
+    }
+
+private[frontroute] def withMatchedPathAndEl[N <: fs2.dom.Node[IO], M](
+  body: (N, Signal[IO, List[String]]) => M
+): WithMatchedPathAndEl[N, M] =
+  WithMatchedPathAndEl(body)
+
+def withMatchedPath[N <: fs2.dom.Node[IO], M](mod: Signal[IO, List[String]] => M): WithMatchedPathAndEl[N, M] =
+  withMatchedPathAndEl((_, consumed) => mod(consumed))
+
+def relativeHref(path: String): WithMatchedPathAndEl[HtmlAnchorElement[IO], HtmlAttr.SignalModifier[IO, String]] =
+  withMatchedPath { matched =>
+    href <-- matched.map { matched =>
+      makeRelative(matched, path)
+    }
+  }
 
 private[frontroute] def extractContext: Directive[io.frontroute.Location] =
   Directive[io.frontroute.Location](inner => (location, previous, state) => inner(location)(location, previous, state))

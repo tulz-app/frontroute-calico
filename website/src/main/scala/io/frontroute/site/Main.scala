@@ -26,7 +26,7 @@ import scala.scalajs.js.annotation.JSImport
 @JSImport("stylesheets/index.css", JSImport.Namespace)
 object IndexCss extends js.Object
 
-object Main extends IOWebApp {
+object Main extends IORoutesApp {
 
   val indexCss: IndexCss.type = IndexCss
 
@@ -61,7 +61,7 @@ object Main extends IOWebApp {
     }
   }
 
-  def render = {
+  def renderRoutes = {
 //    Theme.setTheme(DefaultTheme.theme)
 //    Modal.initialize()
     Highlight.registerLanguage("scala", HighlightScala)

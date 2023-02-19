@@ -46,7 +46,7 @@ object TabsExample
               cls := "flex space-x-2",
               tabs.map { case (path, tabLabel) =>
                 a(
-                  href := s"/$path",
+                  relativeHref(path),
                   /* <focus> */
                   navMod { active =>
                     cls <-- active.ifF(
@@ -64,11 +64,11 @@ object TabsExample
               /* </focus> */
               div(
                 div(
-                  cls <-- tab.map(t => Option.when(t != "tab-1")(List("hidden"))),
+                  cls <-- tab.map(_ != "tab-1").ifF(List("hidden"), List.empty),
                   textArea("tab-1 text area", cls := "bg-blue-100 text-blue-500")
                 ),
                 div(
-                  cls <-- tab.map(t => Option.when(t != "tab-2")(List("hidden"))),
+                  cls <-- tab.map(_ != "tab-2").ifF(List("hidden"), List.empty),
                   textArea("tab-2 text area", cls := "bg-blue-100 text-blue-500")
                 )
               )

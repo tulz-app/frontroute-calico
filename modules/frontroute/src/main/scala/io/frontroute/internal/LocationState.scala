@@ -50,7 +50,7 @@ private[frontroute] object RouterStateRef:
 
 private[frontroute] object LocationState:
 
-  def default: Resource[IO, LocationState] = withLocationProvider(LocationProvider.windowLocationProvider)
+  private[frontroute] def defaultLocationState: LocationState = IORoutesApp.defaultLocationState
 
   def apply(
     _location: Signal[IO, Option[Location]],
@@ -91,7 +91,7 @@ private[frontroute] object LocationState:
 
     }
 
-  def withLocationProvider(lp: LocationProvider): Resource[IO, LocationState] =
+  private[frontroute] def withLocationProvider(lp: LocationProvider): Resource[IO, LocationState] =
     Resource.eval(SignallingRef.of[IO, Boolean](false)).flatMap { siblingMatchedVar =>
       lp.current.discrete
         .evalTap { _ =>
@@ -119,7 +119,7 @@ private[frontroute] object LocationState:
     }
 
   @tailrec
-  def closestOrDefault[N <: fs2.dom.Node[IO]](n: N): IO[LocationState] = {
+  def closestOrDefault[N <: fs2.dom.Node[IO]](n: N): IO[LocationState] = { 
     val node      = n.asInstanceOf[dom.Node]
     val withState = node.asInstanceOf[ElementWithLocationState]
     if (withState.____locationState.isEmpty) {
@@ -128,11 +128,9 @@ private[frontroute] object LocationState:
         closestOrDefault(node.parentNode.asInstanceOf[N])
       } else {
 //        dom.console.log("no location state, no parent, using default", n)
-        default.use { default =>
-          IO {
-            withState.____locationState = default
-          }.as(default)
-        }
+        IO {
+          withState.____locationState = defaultLocationState
+        }.as(defaultLocationState)
       }
     } else {
 //      dom.console.log("closest found!", n)

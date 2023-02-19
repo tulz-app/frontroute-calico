@@ -38,7 +38,8 @@ object Route {
         (
           IO.cede >>
             LocationState
-              .closestOrDefault(e).flatMap { locationState =>
+              .closestOrDefault(e)
+              .flatMap { locationState =>
 
                 locationState.location.discrete
                   .evalMap {
