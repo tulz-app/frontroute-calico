@@ -48,7 +48,7 @@ inThisBuild(
       ScalaVersions.v3,
     ),
     versionPolicyIntention                     := Compatibility.BinaryCompatible,
-    sonatypeCredentialHost                     := "s01.oss.sonatype.org",
+//    sonatypeCredentialHost                     := "s01.oss.sonatype.org",
     githubWorkflowJavaVersions                 := Seq(JavaSpec.temurin("17")),
 //    githubWorkflowBuild += WorkflowStep.Sbt(List("versionPolicyCheck")),
     githubWorkflowTargetTags ++= Seq("v*"),
