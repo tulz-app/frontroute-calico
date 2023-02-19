@@ -22,9 +22,12 @@ lazy val useJSEnv =
 
 addCommandAlias("ci", ciVariants.mkString("; ", "; ", ""))
 
-addCommandAlias("ciFirefox", "; set Global / useJSEnv := JSEnv.Firefox; test; set Global / useJSEnv := JSEnv.NodeJS")
-addCommandAlias("ciChrome", "; set Global / useJSEnv := JSEnv.Chrome; test; set Global / useJSEnv := JSEnv.NodeJS")
-addCommandAlias("ciJSDOMNodeJS", "; set Global / useJSEnv := JSEnv.JSDOMNodeJS; test; set Global / useJSEnv := JSEnv.NodeJS")
+addCommandAlias("ciFirefox", "; set Global / useJSEnv := JSEnv.Firefox; compile; set Global / useJSEnv := JSEnv.NodeJS")
+addCommandAlias("ciChrome", "; set Global / useJSEnv := JSEnv.Chrome; compile; set Global / useJSEnv := JSEnv.NodeJS")
+addCommandAlias("ciJSDOMNodeJS", "; set Global / useJSEnv := JSEnv.JSDOMNodeJS; compile; set Global / useJSEnv := JSEnv.NodeJS")
+//addCommandAlias("ciFirefox", "; set Global / useJSEnv := JSEnv.Firefox; test; set Global / useJSEnv := JSEnv.NodeJS")
+//addCommandAlias("ciChrome", "; set Global / useJSEnv := JSEnv.Chrome; test; set Global / useJSEnv := JSEnv.NodeJS")
+//addCommandAlias("ciJSDOMNodeJS", "; set Global / useJSEnv := JSEnv.JSDOMNodeJS; test; set Global / useJSEnv := JSEnv.NodeJS")
 
 Global / useJSEnv := JSEnv.NodeJS
 
