@@ -125,7 +125,7 @@ lazy val frontroute =
     .in(file("modules/frontroute"))
     .enablePlugins(ScalaJSPlugin)
     .settings(
-      name                     := "frontroute",
+      name                     := "frontroute-calico",
       libraryDependencies ++=
         Seq.concat(
           Dependencies.calico.value,
