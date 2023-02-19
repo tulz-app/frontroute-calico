@@ -155,10 +155,25 @@ object CodeExampleDisplay {
                 }
               ),
               div(
-                cls := "flex-1 shadow relative",
+                cls := "flex-1 shadow relative overflow-x-auto",
                 (highlightStyle, dimContext).mapN { (_, dim) =>
-                  div("code will be here")
 //                  codeNode(dim)
+                  code(
+                    pre(
+                      cls := "font-mono",
+                      fixIndentation {
+                        example.code.source
+                      }
+                        .replaceAll(
+                          "\n[ ]*/\\* <focus> \\*/[ ]*\n",
+                          "\n"
+                        )
+                        .replaceAll(
+                          "\n[ ]*/\\* </focus> \\*/[ ]*\n",
+                          "\n"
+                        )
+                    )
+                  )
                 }
               )
             ),
@@ -183,7 +198,7 @@ object CodeExampleDisplay {
               )
             ),
             div(
-              cls <-- tab.map(_ != "source").ifF(List("description"), List("flex-1 flex flex-col prose max-w-none")),
+              cls <-- tab.map(_ != "description").ifF(List("hidden"), List("flex-1 flex flex-col prose max-w-none")),
             ).flatTap { e =>
               Resource.eval {
                 IO {
