@@ -22,9 +22,11 @@ object SetLocationProvider:
             throw new IllegalStateException("initializing location provider: location state is already defined")
           )
         case None    =>
-          LocationState
-            .initIfMissing(
-              e,
-              LocationState.withLocationProvider(m.lp)
-            ).void
+          Resource.eval {
+            LocationState
+              .initIfMissing(
+                e,
+                LocationState.withLocationProvider(m.lp)
+              ).void
+          }
       }

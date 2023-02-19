@@ -9,12 +9,12 @@ class Wiring(
 
 object Wiring {
 
-  def apply(): Wiring = {
+  def apply(site: Site): Wiring = {
     new Wiring(
       ssrContext = SsrContext(
         ssr = dom.window.navigator.userAgent == "frontroute/ssr"
       ),
-      routes = new Routes
+      routes = Routes(site)
     )
   }
 

@@ -1,14 +1,29 @@
 package io.frontroute.site.components
 
 import io.laminext.highlight.Highlight
-import com.raquo.laminar.api.L._
 import io.frontroute.site.Site
 import io.frontroute.site.TemplateVars
 import io.laminext.markdown.markedjs.Marked
+import calico.*
+import calico.html.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
+import cats.effect.*
+import cats.effect.syntax.all.*
+import cats.syntax.all.*
+import fs2.*
+import fs2.concurrent.*
+import org.scalajs.dom
 
 object DocumentationDisplay {
 
-  def apply(title: String, markdown: String): Element =
+  def apply(
+             title: String,
+             markdown: String,
+             site: Site
+           ): Resource[IO, HtmlElement[IO]] =
     div(
       cls := "space-y-4",
       h1(
@@ -17,19 +32,22 @@ object DocumentationDisplay {
       ),
       div(
         cls := "prose prose-blue max-w-none",
-        new Modifier[HtmlElement] {
-          override def apply(element: HtmlElement): Unit = element.ref.innerHTML = Marked
-            .parse(TemplateVars(markdown)).replace(
-              """<a href="/""",
-              s"""<a href="${Site.thisVersionPrefix}"""
-            )
-        },
-        onMountCallback { ctx =>
-          ctx.thisNode.ref.querySelectorAll("pre > code").foreach { codeElement =>
-            Highlight.highlightElement(codeElement)
+      ).flatTap { e =>
+        val node = e.asInstanceOf[dom.HTMLDivElement]
+        Resource.eval {
+          IO {
+            node.innerHTML = Marked
+              .parse(TemplateVars(markdown)).replace(
+                """<a href="/""",
+                s"""<a href="${site.thisVersionPrefix}"""
+              )
+          } >> IO {
+            node.querySelectorAll("pre > code").foreach { codeElement =>
+              Highlight.highlightElement(codeElement)
+            }
           }
         }
-      )
+      }
     )
 
 }

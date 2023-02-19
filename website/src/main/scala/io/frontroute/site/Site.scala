@@ -1,11 +1,15 @@
 package io.frontroute.site
 
+import cats.effect.IO
 import io.frontroute.site.pages.CodeExamplePage
 import io.frontroute.site.pages.DocumentationPage
 import com.yurique.embedded.FileAsString
+import fs2.concurrent.Signal
 import io.frontroute.site.examples.CodeExample
 
-object Site {
+class Site(
+  highlightStyle: Signal[IO, String]
+) {
 
   val frontrouteVersion: String = "0.17.x"
 
@@ -16,13 +20,13 @@ object Site {
 
   private def examplePage(
     example: CodeExample
-  ): Page = Page(example.id, example.id + "/live", example.title, CodeExamplePage(example))
+  ): Page = Page(example.id, example.id + "/live", example.title, CodeExamplePage(example, this, highlightStyle))
 
   private def docPage(
     path: String,
     title: String,
     markdown: String
-  ): Page = Page(path, path, title, DocumentationPage(title, markdown))
+  ): Page = Page(path, path, title, DocumentationPage(title, markdown, this))
 
   val indexModule: SiteModule =
     SiteModule(

@@ -1,26 +1,20 @@
 package io.frontroute.site
 
-import com.raquo.laminar.api.L._
+import calico.*
+import calico.html.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
+import cats.effect.*
+import cats.effect.syntax.all.*
+import cats.syntax.all.*
+import fs2.*
+import fs2.concurrent.*
 
-final class Page private (
+final class Page(
   val path: String,
   val link: String,
   val title: String,
-  val render: () => Element
+  val render: Resource[IO, HtmlElement[IO]]
 )
-
-object Page {
-
-  def apply(
-    path: String,
-    link: String,
-    title: String,
-    render: => Element
-  ): Page = new Page(
-    path,
-    link,
-    title,
-    () => render
-  )
-
-}

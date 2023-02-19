@@ -1,7 +1,17 @@
 package io.frontroute.site
 
-import com.raquo.laminar.api.L._
-import io.frontroute._
+import io.frontroute.*
+import calico.*
+import calico.html.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
+import cats.effect.*
+import cats.effect.syntax.all.*
+import cats.syntax.all.*
+import fs2.*
+import fs2.concurrent.*
 
 package object pages {
 
@@ -11,10 +21,10 @@ package object pages {
     keywords: Option[String] = None,
     status: PageStatusCode = PageStatusCode.Ok
   )(
-    content: => Element
-  ): Element =
-    content.amend(
-      onMountCallback { _ =>
+    content: Resource[IO, HtmlElement[IO]]
+  ): Resource[IO, HtmlElement[IO]] =
+    content.flatTap { el =>
+      Resource.eval {
         DocumentMeta.set(
           title = title,
           description = description,
@@ -22,6 +32,6 @@ package object pages {
           status = status
         )
       }
-    )
+    }
 
 }

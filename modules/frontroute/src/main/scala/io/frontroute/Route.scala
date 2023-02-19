@@ -18,122 +18,121 @@ import cats.effect.kernel.Resource
 import fs2.concurrent.Signal
 import fs2.concurrent.SignallingRef
 import fs2.dom.HtmlElement
+import scala.concurrent.duration._
 
 trait Route extends ((Location, RoutingState, RoutingState) => IO[RouteResult])
 
 object Route {
 
   given modifierForRoute[N <: fs2.dom.Node[IO]]: Modifier[IO, N, Route] = { (m, e) =>
-    Resource.eval(
-      (
-        SignallingRef.of[IO, Option[Resource[IO, fs2.dom.Node[IO]]]](Option.empty),
-        SignallingRef.of[IO, Option[LocationState]](Option.empty)
-      ).tupled
-    ).flatMap { case (currentRender, currentRenderLocationState) =>
-      LocationState.closestOrDefault(e).flatMap { locationState =>
-        val childStateRef = new RouterStateRef
+    // println(s"modifierForRoute: $m")
+    Resource
+      .eval(
+        (
+          SignallingRef.of[IO, Option[Resource[IO, fs2.dom.Node[IO]]]](Option.empty),
+          SignallingRef.of[IO, Option[LocationState]](Option.empty),
+          RouterStateRef()
+        ).tupled
+      )
+      .flatMap { case (currentRender, currentRenderLocationState, childStateRef) =>
+        (
+//          IO { org.scalajs.dom.console.log("route sleeping", e) } >>
+          IO.sleep(0.millisecond) >>
+            LocationState
+              .closestOrDefault(e).flatMap { locationState =>
 
-        locationState.location.discrete
-          .evalMap {
-            case Some(currentUnmatched) =>
-              (
-                locationState.consumed.get,
-                currentRender.get
-              ).tupled.flatMap { (consumedNow, currentRenderNow) =>
-                m.apply(
-                  currentUnmatched.copy(otherMatched = locationState.isSiblingMatched),
-                  locationState.routerState.get(m).fold(RoutingState.empty)(_.resetPath),
-                  RoutingState.empty.withConsumed(consumedNow)
-                ).flatMap {
-                    case RouteResult.Matched(nextState, location, consumed, createResult) =>
-                      IO {
-                        locationState.resetChildMatched()
-                        locationState.notifySiblingMatched()
-                      }.flatMap { _ =>
-                        if (
-                          !locationState.routerState.get(m).contains(nextState) ||
-                          currentRenderNow.isEmpty
-                        ) {
-                          RouteEvent.NextRender(nextState, location, consumed, createResult).pure[IO]
-                        } else {
-                          RouteEvent.SameRender(nextState, location, consumed).pure[IO]
-                        }
-                      }
-                    case RouteResult.RunEffect(nextState, location, consumed, run)        =>
-                      IO {
-                        locationState.notifySiblingMatched()
-                      }.flatMap { _ =>
-                        if (!locationState.routerState.get(m).contains(nextState)) {
-                          run >>
-                            RouteEvent.SameRender(nextState, location, consumed).pure[IO]
-                        } else {
-                          RouteEvent.SameRender(nextState, location, consumed).pure[IO]
-                        }
-                      }
-
-                    case RouteResult.Rejected =>
-                      RouteEvent.NoRender.pure[IO]
-                  }.flatMap {
-                    case RouteEvent.NextRender(nextState, remaining, consumed, render) =>
-                      IO {
-                        locationState.routerState.set(m, nextState)
-                        locationState.setRemaining(Some(remaining))
-                      }.flatMap { _ =>
-                        val modified = render.flatMap { element =>
-                          LocationState
-                            .initIfMissing(
-                              element,
-                              Resource.eval {
-                                LocationState(
-                                  _location = locationState.remaining,
-                                  _isSiblingMatched = () => locationState.isChildMatched,
-                                  _resetSiblingMatched = locationState.resetChildMatched,
-                                  _notifySiblingMatched = locationState.notifyChildMatched,
-                                  _routerState = childStateRef,
+                locationState.location.discrete
+                  .evalMap {
+                    case Some(currentUnmatched) =>
+                      (
+                        locationState.consumed.get,
+                        currentRender.get,
+                        locationState.isSiblingMatched,
+                        locationState.routerState.get(m)
+                      ).tupled.flatMap { (consumedNow, currentRenderNow, isSiblingMatched, routerState) =>
+                        m.apply(
+                          currentUnmatched.copy(otherMatched = isSiblingMatched),
+                          routerState.fold(RoutingState.empty)(_.resetPath),
+                          RoutingState.empty.withConsumed(consumedNow)
+                        ).flatMap {
+                            case RouteResult.Matched(nextState, location, consumed, createResult) =>
+                              locationState.resetChildMatched >>
+                                locationState.notifySiblingMatched >> (
+                                  if (
+                                    !routerState.contains(nextState) ||
+                                    currentRenderNow.isEmpty
+                                  ) {
+                                    RouteEvent.NextRender(nextState, location, consumed, createResult).pure[IO]
+                                  } else {
+                                    RouteEvent.SameRender(nextState, location, consumed).pure[IO]
+                                  }
                                 )
-                              }
-                            )
-                            .flatMap { childState =>
-                              childState.setConsumed(consumed)
-                              Resource.eval(
-                                currentRenderLocationState.set(childState.some)
-                              ).as(element)
-                            }
-                        // render.ref.dataset.addOne("frPath" -> consumed.mkString("/", "/", ""))
-                        }
-                        currentRender.set(Some(modified))
-                      }
-                    case RouteEvent.SameRender(nextState, remaining, consumed)         =>
-                      IO {
-                        locationState.routerState.set(m, nextState)
-                      } >> 
-                      (currentRenderLocationState.get.flatMap { 
-                        case Some(state) =>
-                          IO { 
-                            state.setConsumed(consumed)
-                          }
-                        case None => 
-                          IO.unit
-                        // render.ref.dataset.addOne("frPath" -> consumed.mkString("/", "/", ""))
-                      }
-                      )
+                            case RouteResult.RunEffect(nextState, location, consumed, run)        =>
+                              locationState.notifySiblingMatched >> (
+                                if (!routerState.contains(nextState)) {
+                                  run >>
+                                    RouteEvent.SameRender(nextState, location, consumed).pure[IO]
+                                } else {
+                                  RouteEvent.SameRender(nextState, location, consumed).pure[IO]
+                                }
+                              )
 
-                      locationState.setRemaining(Some(remaining))
-                    case RouteEvent.NoRender                                           =>
-                      locationState.routerState.unset(m)
-                      currentRender.set(None) >> 
-                      currentRenderLocationState.set(None)
-                  }
+                            case RouteResult.Rejected =>
+                              RouteEvent.NoRender.pure[IO]
+                          }.flatMap {
+                            case RouteEvent.NextRender(nextState, remaining, consumed, render) =>
+                              locationState.routerState.set(m, nextState) >>
+                                locationState.setRemaining(Some(remaining)) >>
+                                currentRender.set(
+                                  Some(
+                                    render.flatTap { element =>
+                                      Resource.eval {
+                                        LocationState
+                                          .initIfMissing(
+                                            element,
+                                            Resource.eval {
+                                              LocationState(
+                                                _location = locationState.remaining,
+                                                _isSiblingMatched = locationState.isChildMatched,
+                                                _resetSiblingMatched = locationState.resetChildMatched,
+                                                _notifySiblingMatched = locationState.notifyChildMatched,
+                                                _routerState = childStateRef,
+                                              )
+                                            }
+                                          )
+                                          .flatMap { childState =>
+                                            childState.setConsumed(consumed) >>
+                                              currentRenderLocationState.set(childState.some)
+                                          }
+                                      }
+                                    }
+                                  )
+                                )
+
+                            case RouteEvent.SameRender(nextState, remaining, consumed) =>
+                              locationState.routerState.set(m, nextState) >>
+                                currentRenderLocationState.get.flatMap {
+                                  case Some(state) =>
+                                    state.setConsumed(consumed)
+                                  case None        =>
+                                    IO.unit
+                                  // render.ref.dataset.addOne("frPath" -> consumed.mkString("/", "/", ""))
+                                } >>
+                                locationState.setRemaining(Some(remaining))
+                            case RouteEvent.NoRender                                   =>
+                              locationState.routerState.unset(m) >>
+                                currentRender.set(None) >>
+                                currentRenderLocationState.set(None)
+                          }
+                      }
+                    case None                   =>
+                      IO.unit
+                    //              locationState.routerState.unset(this)
+                    //              currentRender.set(None)
+                  }.compile.drain
               }
-            case None                   =>
-              IO.unit
-            //              locationState.routerState.unset(this)
-            //              currentRender.set(None)
-          }.compile.drain.background.flatMap { _ =>
-            forNodeOptionSignal.modify(currentRender, e)
-          }
+        ).background >> forNodeOptionSignal.modify(currentRender, e)
       }
-    }
   }
 
   implicit def toDirective[L](route: Route): Directive[L] = Directive[L](_ => route)

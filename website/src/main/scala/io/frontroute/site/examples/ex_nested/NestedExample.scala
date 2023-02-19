@@ -15,16 +15,27 @@ object NestedExample
         "/some-page"
       )
     )(() => {
-      import io.frontroute._
-      import io.laminext.syntax.core._
-      import com.raquo.laminar.api.L._
+      import io.frontroute.*
+      import io.frontroute.given
+
+      import calico.*
+      import calico.html.*
+      import calico.html.io.given
+      import calico.html.io.*
+      import fs2.dom.*
+      import calico.syntax.*
+      import cats.effect.*
+      import cats.effect.syntax.all.*
+      import cats.syntax.all.*
+      import fs2.*
+      import fs2.concurrent.*
 
       val tabs = Seq(
         "tab-1" -> "Tab 1",
         "tab-2" -> "Tab 2",
       )
 
-      def MyComponent(): HtmlElement =
+      def MyComponent(): Resource[IO, HtmlElement[IO]] =
         div(
           cls := "space-y-2",
           div(
@@ -32,12 +43,11 @@ object NestedExample
             tabs.map { case (path, tabLabel) =>
               a(
                 href := path,
-                cls  := "text-xl px-4 py-1 rounded border-b-2",
                 /* <focus> */
                 navMod { active =>
-                  Seq(
-                    cls.toggle("border-blue-800 bg-blue-200 text-blue-800") <-- active,
-                    cls.toggle("border-transparent text-blue-700") <-- !active,
+                  cls <-- active.ifF(
+                    List("text-xl px-4 py-1 rounded border-b-2 border-blue-800 bg-blue-200 text-blue-800"),
+                    List("text-xl px-4 py-1 rounded border-b-2 border-transparent text-blue-700")
                   )
                 },
                 /* </focus> */

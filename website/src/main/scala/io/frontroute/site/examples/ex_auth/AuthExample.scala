@@ -15,8 +15,20 @@ object AuthExample
         "/private/profile"
       )
     )(() => {
-      import io.frontroute._
-      import com.raquo.laminar.api.L._
+      import io.frontroute.*
+      import io.frontroute.given
+
+      import calico.*
+      import calico.html.*
+      import calico.html.io.given
+      import calico.html.io.*
+      import fs2.dom.*
+      import calico.syntax.*
+      import cats.effect.*
+      import cats.effect.syntax.all.*
+      import cats.syntax.all.*
+      import fs2.*
+      import fs2.concurrent.*
 
       case class User(id: String)
 
@@ -26,76 +38,84 @@ object AuthExample
         case class SignedIn(userId: String) extends AuthenticationEvent
       }
 
-      val authenticationEvents = new EventBus[AuthenticationEvent]
-      /* <focus> */
-      val authenticatedUser: Signal[Option[User]] =
+      for {
+        authenticationEvents <- Resource.eval {
+                                  fs2.concurrent.Channel.bounded[IO, AuthenticationEvent](5)
+                                }
+        /* <focus> */
+        authenticatedUser    <-
+          authenticationEvents.stream
+            .map {
+              case AuthenticationEvent.SignedOut        => Option.empty
+              case AuthenticationEvent.SignedIn(userId) => Some(User(userId))
+            }.holdResource(Option.empty[User])
         /* </focus> */
-        authenticationEvents.events.scanLeft(Option.empty[User]) {
-          case (_, AuthenticationEvent.SignedOut)        => Option.empty
-          case (_, AuthenticationEvent.SignedIn(userId)) => Some(User(userId))
-        }
-
-      val route = {
-        div(
-          child <-- authenticatedUser.signal.map { maybeUser =>
-            div(
-              firstMatch(
-                pathEnd {
-                  div(
-                    div(cls := "text-2xl", "Index page."),
-                    div(s"Maybe user: $maybeUser")
-                  )
-                },
-                /* <focus> */
-                provideOption(maybeUser) { user =>
-                  /* </focus> */
-                  pathPrefix("private") {
-                    path("profile") {
-                      div(
-                        div(cls := "text-2xl", "Profile page."),
-                        div(s"User: $user")
-                      )
-                    }
-                  }
-                  /* <focus> */
-                },
-                /* </focus> */
-                extractUnmatchedPath { unmatched =>
-                  div(
-                    div(cls := "text-2xl", "Not Found"),
-                    div(unmatched.mkString("/", "/", ""))
-                  )
-                }
-              )
-            )
-          }
-        )
-      }
-
-      div(
-        div(
-          cls := "p-4 min-h-[300px]",
-          route
-        ),
-        div(
-          cls := "bg-blue-900 -mx-6 p-2 space-y-2",
-          div(
-            cls := "font-semibold text-xl text-blue-200",
-            "Sign in a user (empty for log out):"
-          ),
-          div(
-            input(
-              tpe         := "text",
-              placeholder := "Input a user ID and hit enter...",
-              onKeyDown.filter(_.key == "Enter").stopPropagation.mapToValue.map { userId =>
-                if (userId.isEmpty) {
-                  AuthenticationEvent.SignedOut
-                } else {
-                  AuthenticationEvent.SignedIn(userId)
-                }
-              } --> authenticationEvents
-            )
-          )
-        )
-      )
+        route                <- div(
+                                  authenticatedUser.map { maybeUser =>
+                                    div(
+                                      firstMatch(
+                                        pathEnd {
+                                          div(
+                                            div(cls := "text-2xl", "Index page."),
+                                            div(s"Maybe user: $maybeUser")
+                                          )
+                                        },
+                                        /* <focus> */
+                                        provideOption(maybeUser) { user =>
+                                          /* </focus> */
+                                          pathPrefix("private") {
+                                            path("profile") {
+                                              div(
+                                                div(cls := "text-2xl", "Profile page."),
+                                                div(s"User: $user")
+                                              )
+                                            }
+                                          }
+                                          /* <focus> */
+                                        },
+                                        /* </focus> */
+                                        extractUnmatchedPath { unmatched =>
+                                          div(
+                                            div(cls := "text-2xl", "Not Found"),
+                                            div(unmatched.mkString("/", "/", ""))
+                                          )
+                                        }
+                                      )
+                                    )
+                                  }
+                                )
+        render               <- div(
+                                  div(
+                                    cls := "p-4 min-h-[300px]",
+                                    Resource.pure(route)
+                                  ),
+                                  div(
+                                    cls := "bg-blue-900 -mx-6 p-2 space-y-2",
+                                    div(
+                                      cls := "font-semibold text-xl text-blue-200",
+                                      "Sign in a user (empty for log out):"
+                                    ),
+                                    div(
+                                      input.withSelf(self =>
+                                        (
+                                          tpe         := "text",
+                                          placeholder := "Input a user ID and hit enter...",
+                                          onKeyDown.filter(_.key == "Enter") --> {
+                                            _.foreach { e =>
+                                              e.stopPropagation >> e.preventDefault >>
+                                                self.value.get.flatMap { userId =>
+                                                  if (userId.isEmpty) {
+                                                    authenticationEvents.send(AuthenticationEvent.SignedOut).void
+                                                  } else {
+                                                    authenticationEvents.send(AuthenticationEvent.SignedIn(userId)).void
+                                                  }
+                                                }
+                                            }
+                                          }
+                                        )
+                                      )
+                                    )
+                                  )
+                                )
+      } yield render
     })

@@ -202,7 +202,7 @@ object NavMod:
                 }
               }
             )(obs => IO.delay { obs.disconnect() }).flatMap { _ =>
-              LocationState.closestOrDefault(e).flatMap { locationState =>
+              Resource.eval(LocationState.closestOrDefault(e)).flatMap { locationState =>
                 fs2.Stream
                   .emit[IO, Unit](()).merge(mutations.stream.void)
                   .evalMap(_ => locationState.location.get)
@@ -437,7 +437,7 @@ def segment(s: String): PathMatcher0 =
 
 def regex(r: Regex): PathMatcher[Match] =
   segment
-    .map { s => r.findFirstMatchIn(s) }
+    .map(r.findFirstMatchIn)
     .collect { case Some(m) => m }
 
 def long: PathMatcher[Long] = segment.tryParse(_.toLong)

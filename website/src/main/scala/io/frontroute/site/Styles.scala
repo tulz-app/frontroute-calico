@@ -1,10 +1,8 @@
 package io.frontroute.site
 
-import io.laminext.syntax.core._
-
 object Styles {
 
-  val highlightStyle: StoredString = storedString("highlight-style", "an-old-hope")
+//  private val highlightStyle: StoredString = storedString("highlight-style", "an-old-hope")
 
   val styles = Seq(
     "a11y-dark",

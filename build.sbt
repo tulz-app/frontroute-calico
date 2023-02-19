@@ -30,27 +30,28 @@ Global / useJSEnv := JSEnv.NodeJS
 
 inThisBuild(
   List(
-    organization                        := "io.frontroute",
-    homepage                            := Some(url("https://github.com/tulz-app/frontroute-calico")),
-    licenses                            := List("MIT" -> url("https://github.com/tulz-app/frontroute-calico/blob/main/LICENSE.md")),
-    scmInfo                             := Some(ScmInfo(url("https://github.com/tulz-app/frontroute-calico"), "scm:git@github.com/tulz-app/frontroute.git")),
-    developers                          := List(Developer("yurique", "Iurii Malchenko", "i@yurique.com", url("https://github.com/yurique"))),
-    description                         := "Router library for Calico with DSL inspired by Akka HTTP.",
-    Test / publishArtifact              := false,
-    scalafmtOnCompile                   := false,
-    versionScheme                       := Some("early-semver"),
-    scalaVersion                        := ScalaVersions.v3,
-    crossScalaVersions                  := Seq(
+    resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
+    organization                               := "io.frontroute",
+    homepage                                   := Some(url("https://github.com/tulz-app/frontroute-calico")),
+    licenses                                   := List("MIT" -> url("https://github.com/tulz-app/frontroute-calico/blob/main/LICENSE.md")),
+    scmInfo                                    := Some(ScmInfo(url("https://github.com/tulz-app/frontroute-calico"), "scm:git@github.com/tulz-app/frontroute.git")),
+    developers                                 := List(Developer("yurique", "Iurii Malchenko", "i@yurique.com", url("https://github.com/yurique"))),
+    description                                := "Router library for Calico with DSL inspired by Akka HTTP.",
+    Test / publishArtifact                     := false,
+    scalafmtOnCompile                          := false,
+    versionScheme                              := Some("early-semver"),
+    scalaVersion                               := ScalaVersions.v3,
+    crossScalaVersions                         := Seq(
       ScalaVersions.v3,
     ),
-    versionPolicyIntention              := Compatibility.BinaryCompatible,
-    githubWorkflowJavaVersions          := Seq(JavaSpec.temurin("17")),
+    versionPolicyIntention                     := Compatibility.BinaryCompatible,
+    githubWorkflowJavaVersions                 := Seq(JavaSpec.temurin("17")),
 //    githubWorkflowBuild += WorkflowStep.Sbt(List("versionPolicyCheck")),
     githubWorkflowTargetTags ++= Seq("v*"),
     githubWorkflowArtifactUpload               := false,
-    githubWorkflowPublishTargetBranches := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
-    githubWorkflowPublish               := Seq(WorkflowStep.Sbt(List("ci-release"))),
-    githubWorkflowBuild := Seq(
+    githubWorkflowPublishTargetBranches        := Seq(RefPredicate.StartsWith(Ref.Tag("v"))),
+    githubWorkflowPublish                      := Seq(WorkflowStep.Sbt(List("ci-release"))),
+    githubWorkflowBuild                        := Seq(
       WorkflowStep.Sbt(
         List("${{ matrix.ci }}")
       )
@@ -81,22 +82,22 @@ inThisBuild(
       ),
     ),
     githubWorkflowBuildMatrixAdditions += "ci" -> ciVariants,
-    Test / jsEnv := {
+    Test / jsEnv                               := {
       import JSEnv._
 
       val old = (Test / jsEnv).value
 
       useJSEnv.value match {
-        case NodeJS => old
+        case NodeJS      => old
         case JSDOMNodeJS => new JSDOMNodeJSEnv()
-        case Firefox =>
+        case Firefox     =>
           val profile = new FirefoxProfile()
           profile.setPreference("privacy.file_unique_origin", false)
           val options = new FirefoxOptions()
           options.setProfile(profile)
           options.setHeadless(true)
           new SeleniumJSEnv(options)
-        case Chrome =>
+        case Chrome      =>
           val options = new ChromeOptions()
           options.setHeadless(true)
           options.addArguments("--allow-file-access-from-files")
@@ -159,11 +160,12 @@ lazy val website = project
     githubWorkflowTargetTags        := Seq.empty,
     publish / skip                  := true,
     scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
-    scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(ESVersion.ES5_1)) },
+    scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(ESVersion.ES2015)) },
     Compile / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
     scalaJSUseMainModuleInitializer := true,
     //    scalaJSLinkerConfig ~= (_.withModuleSplitStyle(org.scalajs.linker.interface.ModuleSplitStyle.FewestModules)),
     libraryDependencies ++= Seq.concat(
+      Dependencies.calico.value,
       Dependencies.`embedded-files-macro`.value,
       Dependencies.sourcecode.value
     ),

@@ -1,21 +1,28 @@
 package io.frontroute.site
 
-import com.raquo.laminar.api.L._
+import cats.syntax.all.*
 import io.frontroute.site.layout.PageWrap
-import io.laminext.syntax.tailwind._
-import io.laminext.tailwind.modal.ModalContent
-import io.laminext.tailwind.theme.Modal
-import io.laminext.tailwind.theme.Theme
 import org.scalajs.dom
-import io.frontroute._
+import io.frontroute.*
+import io.frontroute.given
+import calico.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
+import cats.effect.*
+import cats.effect.syntax.all.*
+import cats.syntax.all.*
+import fs2.*
+import fs2.concurrent.*
 
-class Routes {
-
-  private val mobileMenuContent = Var[Option[ModalContent]](None)
+class Routes(
+  site: Site
+) {
 
   private def modulePrefix: Directive[SiteModule] =
     pathPrefix(segment).flatMap { moduleName =>
-      provide(Site.findModule(moduleName)).collect { case Some(module) =>
+      provide(site.findModule(moduleName)).collect { case Some(module) =>
         module
       }
     }
@@ -29,59 +36,57 @@ class Routes {
       }
     }
 
-  private val mobileMenuModal: Modal = Theme.current.modal.customize(
-    contentWrapTransition = _.customize(
-      nonHidden = _ :+ "bg-gray-900"
-    )
-  )
+//  private val mobileMenuModal: Modal = Theme.current.modal.customize(
+//    contentWrapTransition = _.customize(
+//      nonHidden = _ :+ "bg-gray-900"
+//    )
+//  )
 
   private val versionSegment = {
     regex("\\d+\\.\\d+\\.\\S+".r).map(_.source)
   }
 
   private val versionPrefix =
-    pathPrefix("v" / versionSegment)
-
-  private val thisVersionPrefix =
-    versionPrefix.filter(_.toString.startsWith(Site.frontrouteVersion)).mapTo(())
+    pathPrefix("v" / segment)
 
   private val anyVersionPrefix =
     versionPrefix.mapTo(())
 
-  def start(): Unit = {
-    val appContainer  = dom.document.querySelector("#app")
-    val menuContainer = dom.document.querySelector("#menu-modal")
+  private val thisVersionPrefix =
+    versionPrefix.filter(_.toString.startsWith(site.frontrouteVersion)).mapTo(())
 
-    appContainer.innerHTML = ""
-    com.raquo.laminar.api.L.render(
-      appContainer,
-      div(
-        cls := "contents",
-        LinkHandler.bind,
-        thisVersionPrefix(
-          firstMatch(
-            (
-              pathEnd.mapTo(Some((Site.indexModule, Site.indexModule.index))) |
-                (modulePrefix & pathEnd).map(m => Some((m, m.index))) |
-                moduleAndPagePrefix.map(moduleAndPage => Some(moduleAndPage))
-            ).signal { moduleAndPage =>
-              PageWrap(moduleAndPage, mobileMenuContent.writer)
-            },
-            div("Not Found")
-          )
-        ),
-        (noneMatched & anyVersionPrefix) {
-          runEffect {
-            dom.console.log("reload")
-//            dom.window.location.reload()
-          }
-        },
-        noneMatched {
-          div("Not Found")
-        }
+  def apply(
+    highlightStyle: SignallingRef[IO, String],
+  ): Resource[IO, HtmlElement[IO]] = {
+    //  private val mobileMenuContent = Var[Option[ModalContent]](None)
+
+    Resource
+      .eval(
+        SignallingRef[IO, Option[Resource[IO, HtmlElement[IO]]]](Option.empty),
       )
-    )
-    val _ = com.raquo.laminar.api.L.render(menuContainer, TW.modal(mobileMenuContent.signal, mobileMenuModal))
+      .flatMap { mobileMenuContent =>
+        div(
+          LinkHandler,
+          thisVersionPrefix {
+            (
+              pathEnd.mapTo((site.indexModule, site.indexModule.index).some) |
+                (modulePrefix & pathEnd).map(m => (m, m.index).some) |
+                moduleAndPagePrefix.map(moduleAndPage => moduleAndPage.some)
+            ).signal { moduleAndPage =>
+              PageWrap(moduleAndPage, mobileMenuContent, site, highlightStyle)
+            }
+          },
+          (noneMatched & anyVersionPrefix) {
+            div("Not Found - wrong version")
+          },
+          (noneMatched & extractUnmatchedPath) { unmatched =>
+            div(s"Not Found! - $unmatched")
+          }
+        )
+
+      }
+
+//    val _ = com.raquo.laminar.api.L.render(menuContainer, TW.modal(mobileMenuContent.signal, mobileMenuModal))
   }
 
 }

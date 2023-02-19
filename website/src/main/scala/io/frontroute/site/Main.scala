@@ -1,46 +1,49 @@
 package io.frontroute.site
 
-import com.raquo.laminar.api.L._
-import io.frontroute.BrowserNavigation
-import io.frontroute.LinkHandler
+import io.frontroute.*
 import io.frontroute.site.components.CodeExampleDisplay
 import io.laminext.highlight.Highlight
 import io.laminext.highlight.HighlightJavaScript
 import io.laminext.highlight.HighlightJson
 import io.laminext.highlight.HighlightScala
 import io.laminext.highlight.HighlightXml
-import io.laminext.tailwind.modal.Modal
-import io.laminext.tailwind.theme.DefaultTheme
-import io.laminext.tailwind.theme.Theme
 import org.scalajs.dom
+import calico.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
+import cats.effect.*
+import cats.effect.syntax.all.*
+import cats.syntax.all.*
+import fs2.*
+import fs2.concurrent.*
 
-object Main {
+import scala.scalajs.js
+import scala.scalajs.js.annotation.JSImport
 
-  def main(args: Array[String]): Unit = {
-    val _ = documentEvents(_.onDomContentLoaded).foreach { _ =>
-      Theme.setTheme(DefaultTheme.theme)
-      Modal.initialize()
-      val wiring = Wiring()
-      removeNoJsClass(wiring.ssrContext)
-      insertJsClass(wiring.ssrContext)
-      Highlight.registerLanguage("scala", HighlightScala)
-      Highlight.registerLanguage("javascript", HighlightJavaScript)
-      Highlight.registerLanguage("json", HighlightJson)
-      Highlight.registerLanguage("html", HighlightXml)
-      if (dom.window.location.pathname.startsWith(Site.thisVersionHref("/example-frame/"))) {
-        renderExample()
-      } else {
-        wiring.routes.start()
+@js.native
+@JSImport("stylesheets/index.css", JSImport.Namespace)
+object IndexCss extends js.Object
+
+object Main extends IOWebApp {
+
+  val indexCss: IndexCss.type = IndexCss
+
+  private def renderExample(
+    highlightStyle: SignallingRef[IO, String],
+    site: Site,
+  ): Resource[IO, HtmlDivElement[IO]] = {
+    val id = dom.window.location.pathname.drop(site.thisVersionHref("/example-frame/").length).takeWhile(_ != '/')
+    site.examples
+      .find(_.id == id)
+      .map(ex => CodeExampleDisplay.frame(ex))
+      .getOrElse(div(s"EXAMPLE NOT FOUND: ${id}"))
+      .flatTap { _ =>
+        Resource.eval {
+          BrowserNavigation.replaceState(url = "/")
+        }
       }
-    }(unsafeWindowOwner)
-  }
-
-  private def renderExample(): Unit = {
-    val id           = dom.window.location.pathname.drop(Site.thisVersionHref("/example-frame/").length).takeWhile(_ != '/')
-    val appContainer = dom.document.querySelector("#app")
-    val content      = Site.examples.find(_.id == id).map(ex => CodeExampleDisplay.frame(ex)).getOrElse(div(s"EXAMPLE NOT FOUND: ${id}"))
-    val _            = com.raquo.laminar.api.L.render(appContainer, content.amend(LinkHandler.bind))
-    BrowserNavigation.replaceState(url = "/")
   }
 
   private def insertJsClass(ssrContext: SsrContext): Unit = {
@@ -57,5 +60,33 @@ object Main {
       Option(dom.document.head.querySelector("style#no-js")).foreach(dom.document.head.removeChild(_))
     }
   }
+
+  def render = {
+//    Theme.setTheme(DefaultTheme.theme)
+//    Modal.initialize()
+    Highlight.registerLanguage("scala", HighlightScala)
+    Highlight.registerLanguage("javascript", HighlightJavaScript)
+    Highlight.registerLanguage("json", HighlightJson)
+    Highlight.registerLanguage("html", HighlightXml)
+    Resource.eval(SignallingRef[IO, String]("an-old-hope")).flatMap { highlightStyle =>
+      val site   = Site(highlightStyle)
+      val wiring = Wiring(site)
+      Resource.eval {
+        IO {
+          removeNoJsClass(wiring.ssrContext)
+          insertJsClass(wiring.ssrContext)
+
+        }
+      } >> (
+        if (dom.window.location.pathname.startsWith(site.thisVersionHref("/example-frame/"))) {
+          renderExample(highlightStyle, site)
+        } else {
+          wiring.routes(highlightStyle)
+        }
+      )
+    }
+  }
+
+  override def rootElementId = "app-container"
 
 }

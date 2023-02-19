@@ -1,21 +1,32 @@
 package io.frontroute.site.components
 
-import com.raquo.laminar.api.L._
-import io.frontroute.BrowserNavigation
+import cats.syntax.all.*
+import io.frontroute.*
+import io.frontroute.given
 import io.frontroute.internal.UrlString
-import io.laminext.syntax.core._
 import io.laminext.highlight.Highlight
 import io.frontroute.site.examples.CodeExample
 import io.frontroute.site.Site
 import io.frontroute.site.Styles
-import io.frontroute._
 import io.frontroute.site.TemplateVars
 import io.laminext.markdown.markedjs.Marked
 import org.scalajs.dom
 import org.scalajs.dom.HTMLIFrameElement
 import org.scalajs.dom.Location
+import org.scalajs.dom.document
 import org.scalajs.dom.html
 import org.scalajs.dom.window
+import calico.*
+import calico.html.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
+import cats.effect.*
+import cats.effect.syntax.all.*
+import cats.syntax.all.*
+import fs2.*
+import fs2.concurrent.*
 
 import scala.scalajs.js
 
@@ -39,189 +50,228 @@ object CodeExampleDisplay {
     lines.map(_.drop(minIndent)).mkString("\n")
   }
 
-  def apply(example: CodeExample): Element = {
-    val dimContext = storedBoolean("dim-context", initial = true)
-    val hasContext = example.code.source.contains("/* <focus> */")
+  def apply(
+    example: CodeExample,
+    site: Site,
+    highlightStyle: Signal[IO, String]
+  ): Resource[IO, HtmlDivElement[IO]] =
+    Resource.eval(SignallingRef.of[IO, Boolean](true)).flatMap { dimContext =>
+      // storedBoolean("dim-context", initial = true)
+      val hasContext = example.code.source.contains("/* <focus> */")
 
-    val codeNode = (dim: Boolean) => {
-      val theCode = pre(
-        cls := "w-full text-sm language-scala",
-        fixIndentation {
-          example.code.source
-        }
-          .replaceAll(
-            "\n[ ]*/\\* <focus> \\*/[ ]*\n",
-            "\n/* <focus> */"
-          )
-          .replaceAll(
-            "\n[ ]*/\\* </focus> \\*/[ ]*\n",
-            "\n/* </focus> */"
-          )
-      )
-      div(
-        theCode,
-        onMountCallback { ctx =>
-          Highlight.highlightElement(ctx.thisNode.ref.childNodes.head)
-          hideFocusMarkers(ctx.thisNode.ref.childNodes.head.asInstanceOf[html.Element])
-          if (hasContext) {
-            val _ = js.timers.setTimeout(100) {
-              val _ = js.timers.setTimeout(0) {
-                val updatedNode = setOpacityRecursively(theCode.ref, 0, dim)
-                val _           = ctx.thisNode.ref.replaceChild(updatedNode, ctx.thisNode.ref.childNodes.head)
+      val codeNode = (dim: Boolean) => {
+        val theCode = pre(
+          cls := "w-full text-sm language-scala",
+          fixIndentation {
+            example.code.source
+          }
+            .replaceAll(
+              "\n[ ]*/\\* <focus> \\*/[ ]*\n",
+              "\n/* <focus> */"
+            )
+            .replaceAll(
+              "\n[ ]*/\\* </focus> \\*/[ ]*\n",
+              "\n/* </focus> */"
+            )
+        ).flatTap { e =>
+          val node = e.asInstanceOf[dom.HTMLDivElement]
+
+          Resource.eval {
+            IO {
+              Highlight.highlightElement(node.childNodes.head)
+              hideFocusMarkers(node.childNodes.head.asInstanceOf[html.Element])
+            }
+          } >> Resource.eval {
+            IO.whenA(hasContext) {
+              IO {
+                val _ = js.timers.setTimeout(100) {
+                  val updatedNode = setOpacityRecursively(node, 0, dim)
+                  val _           = node.parentNode.replaceChild(updatedNode, node)
+                }
               }
             }
           }
+
+        }
+        div(
+          theCode,
+        )
+      }
+
+      val tabs = Seq(
+        "live"   -> "Live Demo",
+        "source" -> "Source Code",
+      ) ++ Seq("description" -> "Description").filter(_ => example.description.trim.nonEmpty)
+
+      div(
+        cls := "flex-1 flex flex-col space-y-4",
+        div(
+          cls := "flex space-x-4 items-center",
+          h1(
+            cls := "font-display text-xl font-bold text-gray-900 tracking-wide",
+            (example.title: String)
+          ),
+          div(
+            cls := "flex space-x-2",
+            tabs.map { case (path, tabLabel) =>
+              a(
+                href := path,
+                navMod { active =>
+                  cls <-- active.ifF(
+                    "px-2 rounded bg-gray-500 text-gray-100 font-semibold".split(' ').toList,
+                    "px-2 rounded text-gray-700 font-semibold".split(' ').toList
+                  )
+                },
+                tabLabel
+              )
+            }
+          )
+        ),
+        path( /*Set("live", "source", "description")*/ segment).signal { tab =>
+          div(
+            cls := "flex-1 flex flex-col space-y-2",
+            div(
+              cls <-- tab.map(_ != "source").ifF(List("hidden"), List("flex-1 flex flex-col space-y-2")),
+              div(
+                cls := "flex space-x-4 items-center",
+                Option.when(hasContext) {
+                  label(
+                    cls := "btn-sm-text-blue flex-shrink-0 flex space-x-1 items-center cursor-pointer",
+                    input.withSelf((el: HtmlInputElement[IO]) =>
+                      (
+                        tpe := "checkbox",
+                        checked <-- dimContext,
+                        onClick --> {
+                          _.foreach { e =>
+                            el.checked.get.flatMap(dimContext.set)
+                          }
+                        }
+                      )
+                    ),
+                    span(
+                      "highlight relevant code"
+                    )
+                  )
+                }
+              ),
+              div(
+                cls := "flex-1 shadow relative",
+                (highlightStyle, dimContext).mapN { (_, dim) =>
+                  div("code will be here")
+//                  codeNode(dim)
+                }
+              )
+            ),
+            div.withSelf(container =>
+              (
+                cls <-- tab.map(_ != "live").ifF(List("hidden"), List("flex-1 flex flex-col")),
+                iframe.withSelf { frame =>
+                  (
+                    cls := "flex-1",
+                    onLoad --> {
+                      _.foreach { _ =>
+                        IO {
+                          val f = frame.asInstanceOf[dom.HTMLIFrameElement]
+//                          f.style.height = (document.body.scrollHeight + 20).toString + "px"
+                          f.style.height = (f.contentWindow.document.body.scrollHeight + 20).toString + "px"
+                        }
+                      }
+                    },
+                    src := site.thisVersionHref(s"/example-frame/${example.id}")
+                  )
+                }
+              )
+            ),
+            div(
+              cls <-- tab.map(_ != "source").ifF(List("description"), List("flex-1 flex flex-col prose max-w-none")),
+            ).flatTap { e =>
+              Resource.eval {
+                IO {
+//                  Marked
+//                    .parse(TemplateVars(example.description)).replace(
+//                    """<a href="/""",
+//                    s"""<a href="${Site.thisVersionPrefix}"""
+//                  )
+//                  ctx.thisNode.ref.querySelectorAll("pre > code").foreach { codeElement =>
+//                    Highlight.highlightElement(codeElement)
+//                  }
+                  ()
+                }
+              }
+            }
+          )
+        },
+        (noneMatched & extractUnmatchedPath) { unmatched =>
+          div(s"Not Found - $unmatched")
         }
       )
     }
 
-    val tabs = Seq(
-      "live"   -> "Live Demo",
-      "source" -> "Source Code",
-    ) ++ Seq("description" -> "Description").filter(_ => example.description.trim.nonEmpty)
-
-    div(
-      cls := "flex-1 flex flex-col space-y-4",
-      div(
-        cls := "flex space-x-4 items-center",
-        h1(
-          cls := "font-display text-xl font-bold text-gray-900 tracking-wide",
-          example.title
-        ),
-        div(
-          cls := "flex space-x-2",
-          tabs.map { case (path, tabLabel) =>
-            a(
-              href := path,
-              cls  := "px-2 rounded",
-              navMod { active =>
-                Seq(
-                  cls.toggle("bg-gray-500 text-gray-100 font-semibold") <-- active,
-                  cls.toggle("text-gray-700 font-semibold") <-- !active,
-                )
-              },
-              tabLabel
-            )
-          }
-        )
-      ),
-      (path(Set("live", "source", "description")) | pathEnd.mapTo("live")).signal { tab =>
-        div(
-          cls := "flex-1 flex flex-col space-y-2",
-          div(
-            cls := "flex-1 flex flex-col space-y-2",
-            cls.toggle("hidden") <-- tab.map(_ != "source"),
-            div(
-              cls := "flex space-x-4 items-center",
-              when(hasContext) {
-                label(
-                  cls := "btn-sm-text-blue flex-shrink-0 flex space-x-1 items-center cursor-pointer",
-                  input(
-                    tpe := "checkbox",
-                    checked <-- dimContext.signal,
-                    inContext { el =>
-                      el.events(onClick) --> { _ =>
-                        dimContext.set(el.ref.checked)
-                      }
-                    }
-                  ),
-                  span(
-                    "highlight relevant code"
-                  )
-                )
-              }
-            ),
-            div(
-              cls := "flex-1 shadow relative",
-              child <-- Styles.highlightStyle.signal.combineWithFn(dimContext.signal) { (_, dim) =>
-                codeNode(dim)
-              }
-            )
-          ),
-          div(
-            cls := "flex-1 flex flex-col",
-            cls.toggle("hidden") <-- tab.map(_ != "live"),
-            iframe(
-              cls := "flex-1",
-              onLoad --> { e =>
-                val f = e.target.asInstanceOf[HTMLIFrameElement]
-                f.style.height = (f.contentWindow.document.body.scrollHeight + 20).toString + "px"
-              },
-              src := Site.thisVersionHref(s"/example-frame/${example.id}")
-            )
-          ),
-          div(
-            cls := "flex-1 flex flex-col prose max-w-none",
-            cls.toggle("hidden") <-- tab.map(_ != "description"),
-            new Modifier[HtmlElement] {
-              override def apply(element: HtmlElement): Unit = element.ref.innerHTML = Marked
-                .parse(TemplateVars(example.description)).replace(
-                  """<a href="/""",
-                  s"""<a href="${Site.thisVersionPrefix}"""
-                )
-            },
-            onMountCallback { ctx =>
-              ctx.thisNode.ref.querySelectorAll("pre > code").foreach { codeElement =>
-                Highlight.highlightElement(codeElement)
-              }
-            }
-          )
-        )
-      }
-    )
-  }
-
-  def frame(example: CodeExample): Element = {
+  def frame(example: CodeExample) = {
     def pathAndSearch(url: Location): String =
       url.pathname + (if (url.search != null && url.search.nonEmpty) url.search else "")
 
-    val currentUrl = windowEvents(_.onPopState)
-      .mapTo(window.location.toString).map { case UrlString(url) => pathAndSearch(url) }
-      .startWith("/")
+    val currentUrl =
+      Window[IO]
+        .history[Unit]
+        .state
+        .map(_ => window.location.toString)
+        .map { case UrlString(url) => pathAndSearch(url) }
 
-    val urlInput = input(
-      value <-- currentUrl.map(path => "https://site.nowhere" + path),
-      tpe         := "url",
-      placeholder := "https://site.nowhere/path"
-    )
-
-    div(
-      cls := "border-4 border-dashed border-blue-400 bg-blue-300 text-blue-900 rounded-lg p-6",
-      div(
-        cls := "-mx-6 -mt-6 p-2 rounded-t-lg bg-blue-500 flex space-x-1",
-        urlInput.amend(
-          cls := "flex-1",
-          thisEvents(onKeyDown.filter(_.key == "Enter").preventDefault.stopPropagation).sample(urlInput.value) --> { case UrlString(url) =>
-            BrowserNavigation.pushState(url = pathAndSearch(url))
-          }
-        ),
-        button(
-          cls := "btn-md-outline-white",
-          "Go",
-          thisEvents(onClick).sample(urlInput.value) --> { case UrlString(url) =>
-            BrowserNavigation.pushState(url = pathAndSearch(url))
-          }
-        )
-      ),
-      example.code.value(),
-      div(
-        cls := "rounded-b-lg bg-blue-900 -mx-6 -mb-6 p-2",
-        div(
-          cls := "font-semibold text-xl text-blue-200",
-          "Navigation"
-        ),
-        div(
-          cls := "flex flex-col p-2",
-          example.links.map { path =>
-            a(
-              cls  := "text-blue-300 hover:text-blue-100",
-              href := path,
-              s"➜ $path"
-            )
-          }
-        )
-      )
-    )
+    for {
+      urlInput <- input.withSelf(urlInput =>
+                    (
+                      value <-- currentUrl.map(path => "https://site.nowhere" + path),
+                      tpe         := "url",
+                      placeholder := "https://site.nowhere/path",
+                      cls         := "flex-1",
+                      onKeyDown.filter(_.key == "Enter") --> {
+                        _.foreach { e =>
+                          e.stopPropagation >> e.preventDefault >>
+                            urlInput.value.get.flatMap { case UrlString(url) =>
+                              BrowserNavigation.pushState(url = pathAndSearch(url))
+                            }
+                        }
+                      }
+                    )
+                  )
+      render   <- div(
+                    cls := "border-4 border-dashed border-blue-400 bg-blue-300 text-blue-900 rounded-lg p-6",
+                    LinkHandler,
+                    div(
+                      cls := "-mx-6 -mt-6 p-2 rounded-t-lg bg-blue-500 flex space-x-1",
+                      button(
+                        cls := "btn-md-outline-white",
+                        "Go",
+                        onClick --> {
+                          _.foreach { e =>
+                            urlInput.value.get.flatMap { case UrlString(url) =>
+                              BrowserNavigation.pushState(url = pathAndSearch(url))
+                            }
+                          }
+                        }
+                      )
+                    ),
+                    example.code.value(),
+                    div(
+                      cls := "rounded-b-lg bg-blue-900 -mx-6 -mb-6 p-2",
+                      div(
+                        cls := "font-semibold text-xl text-blue-200",
+                        "Navigation"
+                      ),
+                      div(
+                        cls := "flex flex-col p-2",
+                        example.links.map { path =>
+                          a(
+                            cls  := "text-blue-300 hover:text-blue-100",
+                            href := path,
+                            s"➜ $path"
+                          )
+                        }
+                      )
+                    )
+                  )
+    } yield render
   }
 
   @scala.annotation.unused
@@ -237,7 +287,11 @@ object CodeExampleDisplay {
     }
   }
 
-  private def setOpacityRecursively(element: html.Element, opaque: Int, dim: Boolean): dom.Node = {
+  private def setOpacityRecursively(
+    element: dom.HTMLElement,
+    opaque: Int,
+    dim: Boolean
+  ): dom.Node = {
     val elementColor = dom.window.getComputedStyle(element).color
     val newElement   = element.cloneNode(false).asInstanceOf[html.Element]
 

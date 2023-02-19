@@ -1,5 +1,7 @@
 package io.frontroute
 
+import cats.effect.IO
+
 case class DocumentMeta(
   title: String,
   description: Option[String] = None,
@@ -31,25 +33,27 @@ object DocumentMeta {
     robots: Option[String] = None,
     customMeta: Option[Map[String, String]] = None,
     status: PageStatusCode = PageStatusCode.Ok
-  ): Unit = {
-    org.scalajs.dom.document.title = title
-    var titleElement = org.scalajs.dom.document.head.querySelector("title")
-    if (titleElement == null) {
-//      titleElement = titleTag(title).ref
-//      org.scalajs.dom.document.head.appendChild(titleElement)
-    } else {
-      titleElement.textContent = title
-    }
-
-    setMetaTag("description", description)
-    setMetaTag("keywords", keywords)
-    setMetaTag("robots", Option.when(status != PageStatusCode.Ok)("noindex").orElse(robots))
-    customMeta.foreach { customMeta =>
-      customMeta.foreach { case (name, value) =>
-        setMetaTag(name, Option.when(value.nonEmpty)(value))
+  ): IO[Unit] = {
+    IO {
+      org.scalajs.dom.document.title = title
+      var titleElement = org.scalajs.dom.document.head.querySelector("title")
+      if (titleElement == null) {
+        //      titleElement = titleTag(title).ref
+        //      org.scalajs.dom.document.head.appendChild(titleElement)
+      } else {
+        titleElement.textContent = title
       }
+
+      setMetaTag("description", description)
+      setMetaTag("keywords", keywords)
+      setMetaTag("robots", Option.when(status != PageStatusCode.Ok)("noindex").orElse(robots))
+      customMeta.foreach { customMeta =>
+        customMeta.foreach { case (name, value) =>
+          setMetaTag(name, Option.when(value.nonEmpty)(value))
+        }
+      }
+      setMetaTag("http-status", Option.when(status == PageStatusCode.NotFound)("404"))
     }
-    setMetaTag("http-status", Option.when(status == PageStatusCode.NotFound)("404"))
   }
 
   private def setMetaTag(metaName: String, value: Option[String]): Unit = {

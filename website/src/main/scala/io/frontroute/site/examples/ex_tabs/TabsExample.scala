@@ -17,10 +17,20 @@ object TabsExample
         "/some-page"
       )
     )(() => {
-      import io.frontroute._
+      import io.frontroute.*
+      import io.frontroute.given
 
-      import io.laminext.syntax.core._
-      import com.raquo.laminar.api.L._
+      import calico.*
+      import calico.html.*
+      import calico.html.io.given
+      import calico.html.io.*
+      import fs2.dom.*
+      import calico.syntax.*
+      import cats.effect.*
+      import cats.effect.syntax.all.*
+      import cats.syntax.all.*
+      import fs2.*
+      import fs2.concurrent.*
 
       val tabs = Seq(
         "tab-1" -> "Tab 1",
@@ -37,12 +47,11 @@ object TabsExample
               tabs.map { case (path, tabLabel) =>
                 a(
                   href := s"/$path",
-                  cls  := "text-xl px-4 py-1 rounded border-b-2",
                   /* <focus> */
                   navMod { active =>
-                    Seq(
-                      cls.toggle("border-blue-800 bg-blue-200 text-blue-800") <-- active,
-                      cls.toggle("border-transparent text-blue-700") <-- !active,
+                    cls <-- active.ifF(
+                      List("text-xl px-4 py-1 rounded border-b-2 border-blue-800 bg-blue-200 text-blue-800"),
+                      List("text-xl px-4 py-1 rounded border-b-2 border-transparent text-blue-700")
                     )
                   },
                   /* </focus> */
@@ -53,14 +62,13 @@ object TabsExample
             /* <focus> */
             path(Set("tab-1", "tab-2")).signal { tab =>
               /* </focus> */
-              \
               div(
                 div(
-                  cls.toggle("hidden") <-- !tab.valueIs("tab-1"),
+                  cls <-- tab.map(t => Option.when(t != "tab-1")(List("hidden"))),
                   textArea("tab-1 text area", cls := "bg-blue-100 text-blue-500")
                 ),
                 div(
-                  cls.toggle("hidden") <-- !tab.valueIs("tab-2"),
+                  cls <-- tab.map(t => Option.when(t != "tab-2")(List("hidden"))),
                   textArea("tab-2 text area", cls := "bg-blue-100 text-blue-500")
                 )
               )

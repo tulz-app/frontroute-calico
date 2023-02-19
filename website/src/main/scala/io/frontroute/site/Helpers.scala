@@ -1,4 +1,4 @@
-package io.frontroute.site.layout
+package io.frontroute.site
 
 import calico.*
 import calico.html.*
@@ -11,12 +11,9 @@ import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.*
 import fs2.concurrent.*
+import shapeless3.deriving.K0
 
-object PageFooter {
-
-  def apply(): Resource[IO, HtmlElement[IO]] =
-    div(
-      cls := "hidden bg-gray-900 text-white p-4"
-    )
-
-}
+def wrap[M <: Tuple](modifiers: M)(using Modifier[IO, HtmlDivElement[IO], M]): Resource[IO, HtmlDivElement[IO]] = div(
+  cls := "contents",
+  modifiers
+)

@@ -15,11 +15,22 @@ object ExtractMatchedPathExample
         "/some-page"
       )
     )(() => {
-      import io.frontroute._
+      import io.frontroute.*
+      import io.frontroute.given
 
-      import com.raquo.laminar.api.L._
+      import calico.*
+      import calico.html.*
+      import calico.html.io.given
+      import calico.html.io.*
+      import fs2.dom.*
+      import calico.syntax.*
+      import cats.effect.*
+      import cats.effect.syntax.all.*
+      import cats.syntax.all.*
+      import fs2.*
+      import fs2.concurrent.*
 
-      def ShowCurrentPath(label: String): Element =
+      def ShowCurrentPath(label: String): Resource[IO, HtmlElement[IO]] =
         div(
           span(
             cls := "bg-yellow-200 text-yellow-900 rounded-sm space-x-2 text-sm px-2 font-mono",
@@ -27,14 +38,14 @@ object ExtractMatchedPathExample
             /* <focus> */
             extractMatchedPath.signal { path =>
               span(
-                child.text <-- path.map(s => s"'${s.mkString("/", "/", "")}'")
+                path.map(s => s"'${s.mkString("/", "/", "")}'")
               )
             }
             /* </focus> */
           )
         )
 
-      def MyComponent(): Element =
+      def MyComponent(): Resource[IO, HtmlElement[IO]] =
         div(
           cls := "space-y-2",
           path(segment).signal { tab =>
@@ -42,16 +53,20 @@ object ExtractMatchedPathExample
               cls := "flex space-x-2",
               a(
                 href := "tab-1",
-                cls  := "text-xl px-4 py-1 rounded border-b-2",
-                cls.toggle("border-blue-800 bg-blue-200 text-blue-800") <-- tab.map(_ == "tab-1"),
-                cls.toggle("border-transparent text-blue-700") <-- tab.map(_ != "tab-1"),
+                cls <-- tab
+                  .map(_ == "tab-1").ifF(
+                    List("text-xl px-4 py-1 rounded border-b-2 border-blue-800 bg-blue-200 text-blue-800"),
+                    List("text-xl px-4 py-1 rounded border-b-2 border-transparent text-blue-700")
+                  ),
                 "Tab 1",
               ),
               a(
                 href := "tab-2",
-                cls  := "text-xl px-4 py-1 rounded border-b-2",
-                cls.toggle("border-blue-800 bg-blue-200 text-blue-800") <-- tab.map(_ == "tab-2"),
-                cls.toggle("border-transparent text-blue-700") <-- tab.map(_ != "tab-2"),
+                cls <-- tab
+                  .map(_ == "tab-2").ifF(
+                    List("text-xl px-4 py-1 rounded border-b-2 border-blue-800 bg-blue-200 text-blue-800"),
+                    List("text-xl px-4 py-1 rounded border-b-2 border-transparent text-blue-700")
+                  ),
                 "Tab 2",
               )
             )
