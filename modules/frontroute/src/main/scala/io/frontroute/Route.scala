@@ -36,8 +36,7 @@ object Route {
       )
       .flatMap { case (currentRender, currentRenderLocationState, childStateRef) =>
         (
-//          IO { org.scalajs.dom.console.log("route sleeping", e) } >>
-          IO.sleep(0.millisecond) >>
+          IO.cede >>
             LocationState
               .closestOrDefault(e).flatMap { locationState =>
 

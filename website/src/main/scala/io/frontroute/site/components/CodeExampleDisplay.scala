@@ -109,7 +109,7 @@ object CodeExampleDisplay {
           cls := "flex space-x-4 items-center",
           h1(
             cls := "font-display text-xl font-bold text-gray-900 tracking-wide",
-            (example.title: String)
+            example.title
           ),
           div(
             cls := "flex space-x-2",
@@ -234,10 +234,10 @@ object CodeExampleDisplay {
         .map { case UrlString(url) => pathAndSearch(url) }
 
     for {
-      urlInput <- input.withSelf(urlInput =>
+      urlInput <- input.withSelf { urlInput =>
                     (
                       value <-- currentUrl.map(path => "https://site.nowhere" + path),
-                      tpe         := "url",
+                      tpe         := "text",
                       placeholder := "https://site.nowhere/path",
                       cls         := "flex-1",
                       onKeyDown.filter(_.key == "Enter") --> {
@@ -249,17 +249,18 @@ object CodeExampleDisplay {
                         }
                       }
                     )
-                  )
+                  }
       render   <- div(
                     cls := "border-4 border-dashed border-blue-400 bg-blue-300 text-blue-900 rounded-lg p-6",
                     LinkHandler,
                     div(
                       cls := "-mx-6 -mt-6 p-2 rounded-t-lg bg-blue-500 flex space-x-1",
+                      Resource.pure(urlInput),
                       button(
                         cls := "btn-md-outline-white",
-                        "Go",
+                        "Go!",
                         onClick --> {
-                          _.foreach { e =>
+                          _.foreach { _ =>
                             urlInput.value.get.flatMap { case UrlString(url) =>
                               BrowserNavigation.pushState(url = pathAndSearch(url))
                             }
