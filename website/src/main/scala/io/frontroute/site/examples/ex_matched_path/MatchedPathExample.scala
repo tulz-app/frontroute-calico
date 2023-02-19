@@ -35,14 +35,13 @@ object MatchedPathExample
           span(
             cls := "bg-yellow-200 text-yellow-900 rounded-sm space-x-2 text-sm px-2 font-mono",
             span(label),
-//            span(
-            /* <focus> */
-//              NOT IMPLEMENTED YET
-//              withMatchedPath { path =>
-//                child.text <-- path.map(s => s"'${s.mkString("/", "/", "")}'")
-//              }
-            /* </focus> */
-//            )
+            span(
+              /* <focus> */
+              withMatchedPath { path =>
+                path.map(s => s"'${s.mkString("/", "/", "")}'")
+              }
+              /* </focus> */
+            )
           )
         )
 

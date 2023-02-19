@@ -9,8 +9,6 @@ module.exports = (api) => {
   if (api.mode === 'production') {
     plugins.cssnano = {}
   }
-
-  console.log('postcss', plugins)
   return {
     plugins
   }

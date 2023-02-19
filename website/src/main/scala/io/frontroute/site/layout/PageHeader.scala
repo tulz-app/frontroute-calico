@@ -43,10 +43,11 @@ object PageHeader {
                              cls := "flex bg-gray-900 text-white py-4 px-8 items-center space-x-8",
                              div(
                                cls := "flex-shrink-0 -my-4 -mx-4",
-                               img(
-                                 src := site.thisVersionHref("/images/logo.svg"),
-                                 cls := "w-10 h-10"
-                               )
+                               SvgIcons.logo("w-10 h-10")
+//                               img(
+//                                 src := site.thisVersionHref("/images/logo.svg"),
+//                                 cls := "w-10 h-10"
+//                               )
                              ),
                              navTag(
                                cls := "flex flex-1 md:flex-none space-x-4 items-center justify-start",
@@ -67,7 +68,7 @@ object PageHeader {
                              ),
                              div(
                                cls := "hidden lg:block",
-                               img(src := "https://img.shields.io/maven-central/v/io.frontroute/frontroute_sjs1_2.13.svg?versionPrefix=0.17", alt := "latest version on maven central")
+                               img(src := "https://img.shields.io/maven-central/v/io.frontroute/frontroute-calico_sjs1_2.13.svg?versionPrefix=0.17", alt := "latest version on maven central")
                              ),
                              div(
                                cls := "hidden lg:block relative inline-block text-left",
@@ -75,7 +76,6 @@ object PageHeader {
                                  button(
                                    `type`        := "button",
                                    cls           := "btn-sm-text-white",
-//                                   Icons.highlighter(svg.cls := "h-4 text-gray-300"),
                                    aria.hasPopup := true,
                                    aria.expanded <-- styleDropDownOpen,
                                    onClick --> {
@@ -83,7 +83,7 @@ object PageHeader {
                                        styleDropDownOpen.get.map(!_).flatMap(styleDropDownOpen.set)
                                      }
                                    },
-                                   "style"
+                                   SvgIcons.paintbrushPencil("w-4 h-4 fill-current"),
 //                                   Icons
 //                                     .chevronDown(
 //                                       svg.cls := "-mr-1 ml-2 h-4 fill-current text-gray-300"
@@ -131,10 +131,7 @@ object PageHeader {
                                          .map { b =>
                                            Option
                                              .when(b)(
-                                               span(
-                                                 "V"
-                                                 //                                               Icons.check(svg.cls := "h-6 text-green-500 fill-current")
-                                               )
+                                               SvgIcons.squareCheck("w-4 h-4 fill-current")
                                              )
                                          },
                                      )
@@ -175,9 +172,8 @@ object PageHeader {
                                cls := "hidden lg:block",
                                a(
                                  href := "https://github.com/tulz-app/frontroute-calico",
-                                 "github"
+                                 SvgIcons.githubMarkWhite("w-6 h-6 fill-current")
                                  //  rel  := "external",
-//                                 Icons.github(svg.cls := "h-6 text-gray-300")
                                )
                              )
                            )

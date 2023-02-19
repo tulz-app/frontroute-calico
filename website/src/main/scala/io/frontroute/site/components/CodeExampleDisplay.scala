@@ -73,15 +73,11 @@ object CodeExampleDisplay {
               "\n[ ]*/\\* </focus> \\*/[ ]*\n",
               "\n/* </focus> */"
             )
-        ).flatTap { e =>
+        ).evalTap { e =>
           val node = e.asInstanceOf[dom.HTMLDivElement]
 
-          Resource.eval {
-            IO {
-              Highlight.highlightElement(node.childNodes.head)
-              hideFocusMarkers(node.childNodes.head.asInstanceOf[html.Element])
-            }
-          } >> Resource.eval {
+          IO { Highlight.highlightElement(node) } >>
+            IO { hideFocusMarkers(node) } >>
             IO.whenA(hasContext) {
               IO {
                 val _ = js.timers.setTimeout(100) {
@@ -90,9 +86,8 @@ object CodeExampleDisplay {
                 }
               }
             }
-          }
-
         }
+
         div(
           theCode,
         )
@@ -158,23 +153,23 @@ object CodeExampleDisplay {
               div(
                 cls := "flex-1 shadow relative overflow-x-auto",
                 (highlightStyle, dimContext).mapN { (_, dim) =>
-//                  codeNode(dim)
-                  code(
-                    pre(
-                      cls := "font-mono",
-                      fixIndentation {
-                        example.code.source
-                      }
-                        .replaceAll(
-                          "\n[ ]*/\\* <focus> \\*/[ ]*\n",
-                          "\n"
-                        )
-                        .replaceAll(
-                          "\n[ ]*/\\* </focus> \\*/[ ]*\n",
-                          "\n"
-                        )
-                    )
-                  )
+                  codeNode(dim)
+//                  code(
+//                    pre(
+//                      cls := "font-mono",
+//                      fixIndentation {
+//                        example.code.source
+//                      }
+//                        .replaceAll(
+//                          "\n[ ]*/\\* <focus> \\*/[ ]*\n",
+//                          "\n"
+//                        )
+//                        .replaceAll(
+//                          "\n[ ]*/\\* </focus> \\*/[ ]*\n",
+//                          "\n"
+//                        )
+//                    )
+//                  )
                 }
               )
             ),

@@ -1,7 +1,8 @@
 import { resolve } from 'path'
-// import { minifyHtml, injectHtml } from 'vite-plugin-html'
-import scalaVersion from './scala-version'
+import { minifyHtml, injectHtml } from 'vite-plugin-html'
 import { createHtmlPlugin } from 'vite-plugin-html'
+
+import scalaVersion from './scala-version'
 
 // https://vitejs.dev/config/
 export default ({ mode }) => {
@@ -13,14 +14,15 @@ export default ({ mode }) => {
     server: {
       port: 6080,
     },
+    base: '/v/0.17.x-calico/',
     publicDir: './src/main/public',
     build: {
       outDir: 'dist/v/0.17.x-calico',
     },
     plugins: [
-      // ...(process.env.NODE_ENV === 'production' ? [
-      //   minifyHtml(),
-      // ] : []),
+      ...(mode === 'production' ? [
+        minifyHtml(),
+      ] : []),
       // injectHtml({
       //   injectData: {
       //     script
@@ -38,6 +40,7 @@ export default ({ mode }) => {
     resolve: {
       alias: {
         'stylesheets': resolve(__dirname, './src/main/static/stylesheets'),
+        'svg': resolve(__dirname, './src/main/static/svg'),
       }
     }
   }
