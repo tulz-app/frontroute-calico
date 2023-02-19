@@ -117,11 +117,11 @@ private[frontroute] object LocationState:
     IO(withState.____locationState).flatMap { locationState =>
       if (locationState.isEmpty) {
         if (node.parentNode != null) {
-          dom.console.log("no location state, have parent", n)
+//          dom.console.log("no location state, have parent", n)
           closestOrFail(node.parentNode.asInstanceOf[N])
         } else {
-          dom.console.log("no location state, no parent", n)
-          dom.console.log("no location state", n)
+//          dom.console.log("no location state, no parent", n)
+//          dom.console.log("no location state", n)
           IO.raiseError(new RuntimeException("location provider not configured"))
         }
       } else {
@@ -150,7 +150,7 @@ private[frontroute] object LocationState:
     val node            = n.asInstanceOf[dom.Node]
     val resultWithState = node.asInstanceOf[ElementWithLocationState]
     if (resultWithState.____locationState.isEmpty) {
-      dom.console.log("initializing location state", n)
+//      dom.console.log("initializing location state", n)
       IO {
 //          dom.console.log("init location state", node)
 //          node.asInstanceOf[dom.HTMLElement].dataset.addOne("frLocationState", "initialized")

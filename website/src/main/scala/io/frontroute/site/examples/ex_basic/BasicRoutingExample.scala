@@ -34,7 +34,7 @@ object BasicRoutingExample
       import fs2.*
       import fs2.concurrent.*
 
-      div(
+      routes(
         div(
           cls := "p-4 min-h-[300px]",
           /* <focus> */

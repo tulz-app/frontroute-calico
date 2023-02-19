@@ -26,7 +26,6 @@ trait Route extends ((Location, RoutingState, RoutingState) => IO[RouteResult])
 object Route {
 
   given modifierForRoute[N <: fs2.dom.Node[IO]]: Modifier[IO, N, Route] = { (m, e) =>
-    // println(s"modifierForRoute: $m")
     Resource
       .eval(
         (

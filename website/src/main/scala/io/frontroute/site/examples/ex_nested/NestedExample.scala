@@ -73,7 +73,7 @@ object NestedExample
           )
         )
 
-      div(
+      routes(
         div(
           cls := "p-4 min-h-[300px]",
           pathEnd {

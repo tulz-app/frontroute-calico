@@ -84,7 +84,7 @@ object AuthExample
                                     )
                                   }
                                 )
-        render               <- div(
+        render               <- routes(
                                   div(
                                     cls := "p-4 min-h-[300px]",
                                     route

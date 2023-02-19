@@ -32,33 +32,23 @@ import scala.util.chaining.*
 import scala.scalajs.js
 import scala.util.matching.Regex
 import scala.util.matching.Regex.Match
-import scala.util.NotGiven
 
 type PathMatcher0 = PathMatcher[Unit]
 
 type Directive0 = Directive[Unit]
 
-case class StartRoutes[M](
-  lp: LocationProvider,
-  mods: M
-)
+def initRouting[N <: fs2.dom.Node[IO], M]: InitRouting =
+  InitRouting(LocationProvider.windowLocationProvider)
 
-object StartRoutes:
+def initRouting[N <: fs2.dom.Node[IO], M](lp: LocationProvider): InitRouting =
+  InitRouting(lp)
 
-  given [N <: fs2.dom.Node[IO], M](using M: Modifier[IO, N, M]): Modifier[IO, N, StartRoutes[M]] =
-    (m, e) =>
-      LocationState.withLocationProvider(m.lp).evalTap { locationState =>
-        LocationState.init(e, locationState).void
-      } >> M.modify(m.mods, e)
-
-def routes[N <: fs2.dom.Node[IO], M](mods: M): StartRoutes[M] =
-  StartRoutes(LocationProvider.windowLocationProvider, mods)
-
-def withLocationProvider[N <: fs2.dom.Node[IO], M](lp: LocationProvider)(mods: M): StartRoutes[M] = StartRoutes(lp, mods)
-
-implicit def directiveOfOptionSyntax[L](underlying: Directive[Option[L]]): DirectiveOfOptionOps[L] = new DirectiveOfOptionOps(underlying)
-
-private[frontroute] val rejected: IO[RouteResult] = IO.pure(RouteResult.Rejected)
+def routes[M](mods: M)(using Modifier[IO, HtmlDivElement[IO], M]) =
+  div(
+    styleAttr := "display: contents",
+    initRouting,
+    mods
+  )
 
 val reject: Route = (_, _, _) => rejected
 
@@ -85,29 +75,6 @@ def firstMatch(routes: Route*): Route = (location, previous, state) => {
 
   findFirst(routes.zipWithIndex.toList)
 }
-
-extension (directive: Directive0)
-  def apply(subRoute: Route): Route =
-    (location, previous, state) => directive.tapply(_ => subRoute)(location, previous, state)
-
-extension [L](directive: Directive[L]) // (using NotGiven[L =:= Unit])
-
-  def apply(subRoute: L => Route): Route =
-    (location, previous, state) => directive.tapply(subRoute)(location, previous, state)
-
-extension (directive: Directive0)
-  def execute(effect: IO[Unit]): Route =
-    (location, previous, state) => directive.tapply(_ => runEffect { effect })(location, previous, state)
-
-extension [L](directive: Directive[L]) // (using NotGiven[L =:= Unit])
-
-  def execute(effect: L => IO[Unit]): Route =
-    (location, previous, state) =>
-      directive.tapply(l =>
-        runEffect {
-          effect(l)
-        }
-      )(location, previous, state)
 
 private def complete[N <: fs2.dom.Node[IO]](result: Resource[IO, N]): Route = (location, _, state) => RouteResult.Matched(state, location, state.consumed, result).pure[IO]
 
@@ -195,9 +162,6 @@ object NavMod:
                     .merge(locationState.location.discrete)
                     .map { location =>
                       val UrlString(url) = e.asInstanceOf[dom.HTMLAnchorElement].href
-                      println(s"nav mod: $location ${url.pathname} --- ${location.exists { location =>
-                          m.compare(location, url)
-                        }}")
                       location.exists { location =>
                         m.compare(location, url)
                       }
@@ -288,185 +252,6 @@ def relativeHref(path: String): WithMatchedPathAndEl[HtmlAnchorElement[IO], Html
       makeRelative(matched, path)
     }
   }
-
-private[frontroute] def extractContext: Directive[io.frontroute.Location] =
-  Directive[io.frontroute.Location](inner => (location, previous, state) => inner(location)(location, previous, state))
-
-private[frontroute] def extract[T](f: io.frontroute.Location => T): Directive[T] =
-  extractContext.map(f)
-
-def param(name: String): Directive[String] =
-  Directive[String] { inner => (location, previous, state) =>
-    location.params.get(name).flatMap(_.headOption) match {
-      case Some(paramValue) => inner(paramValue)(location, previous, state.enterAndSet(paramValue))
-      case None             => rejected
-    }
-  }
-
-def historyState: Directive[Option[js.Any]] =
-  extractContext.map(_.parsedState.flatMap(_.user.toOption))
-
-def historyScroll: Directive[Option[ScrollPosition]] =
-  extractContext.map(_.parsedState.flatMap(_.internal.toOption).flatMap(_.scroll.toOption).map { scroll =>
-    ScrollPosition(
-      scrollX = scroll.scrollX.toOption.map(_.round.toInt),
-      scrollY = scroll.scrollY.toOption.map(_.round.toInt)
-    )
-  })
-
-def maybeParam(name: String): Directive[Option[String]] =
-  Directive[Option[String]] { inner => (location, previous, state) =>
-    val maybeParamValue = location.params.get(name).flatMap(_.headOption)
-    inner(maybeParamValue)(location, previous, state.enterAndSet(maybeParamValue))
-  }
-
-def extractMatchedPath: Directive[List[String]] =
-  Directive[List[String]](inner => (location, previous, state) => inner(state.consumed)(location, previous, state))
-
-val extractUnmatchedPath: Directive[List[String]] = extract(_.path)
-
-val extractHostname: Directive[String] = extract(_.hostname)
-
-val extractPort: Directive[String] = extract(_.port)
-
-val extractHost: Directive[String] = extract(_.host)
-
-val extractProtocol: Directive[String] = extract(_.protocol)
-
-val extractOrigin: Directive[Option[String]] = extract(_.origin)
-
-def provide[L](value: L): Directive[L] = Directive.provide(value)
-
-def provideOption[L](value: Option[L]): Directive[L] =
-  Directive { inner => (location, previous, state) =>
-    value match {
-      case None        => rejected
-      case Some(value) => inner(value)(location, previous, state.enterAndSet(value))
-    }
-  }
-
-def pathPrefix[T](m: PathMatcher[T]): Directive[T] =
-  Directive[T] { inner => (location, previous, state) =>
-    m(state.consumed, location.path) match {
-      case PathMatchResult.Match(t, consumed, rest) =>
-        inner(t)(location.withUnmatchedPath(rest), previous, state.enterAndSet(t).withConsumed(consumed))
-      case _                                        => rejected
-    }
-  }
-
-def testPathPrefix[T](m: PathMatcher[T]): Directive[T] =
-  Directive[T] { inner => (location, previous, state) =>
-    m(state.consumed, location.path) match {
-      case PathMatchResult.Match(t, _, _) => inner(t)(location, previous, state.enterAndSet(t))
-      case _                              => rejected
-    }
-  }
-
-val pathEnd: Directive0 =
-  Directive[Unit] { inner => (location, previous, state) =>
-    if (location.path.isEmpty) {
-      inner(())(location, previous, state.enter)
-    } else {
-      rejected
-    }
-  }
-
-def path[T](m: PathMatcher[T]): Directive[T] =
-  Directive[T] { inner => (location, previous, state) =>
-    m(state.consumed, location.path) match {
-      case PathMatchResult.Match(t, consumed, Nil) =>
-        inner(t)(location.withUnmatchedPath(List.empty), previous, state.enterAndSet(t).withConsumed(consumed))
-      case _                                       => rejected
-    }
-  }
-
-def testPath[T](m: PathMatcher[T]): Directive[T] =
-  Directive[T] { inner => (location, previous, state) =>
-    m(state.consumed, location.path) match {
-      case PathMatchResult.Match(t, _, Nil) => inner(t)(location, previous, state.enterAndSet(t))
-      case _                                => rejected
-    }
-  }
-
-val noneMatched: Directive0 =
-  Directive[Unit] { inner => (location, previous, state) =>
-    if (location.otherMatched) {
-      rejected
-    } else {
-      inner(())(location, previous, state.enter)
-    }
-  }
-
-def whenTrue(condition: => Boolean): Directive0 =
-  Directive[Unit] { inner => (location, previous, state) =>
-    if (condition) {
-      inner(())(location, previous, state)
-    } else {
-      rejected
-    }
-  }
-
-@inline def whenFalse(condition: => Boolean): Directive0 = whenTrue(!condition)
-
-def segment: PathMatcher[String] =
-  (consumed: List[String], in: List[String]) =>
-    in match {
-      case head :: tail => PathMatchResult.Match(head, consumed.appended(head), tail)
-      case Nil          => PathMatchResult.NoMatch
-    }
-
-def segment(oneOf: Seq[String]): PathMatcher[String] =
-  (consumed: List[String], in: List[String]) =>
-    in match {
-      case head :: tail =>
-        if (oneOf.contains(head)) {
-          PathMatchResult.Match(head, consumed.appended(head), tail)
-        } else {
-          PathMatchResult.Rejected(tail)
-        }
-      case Nil          => PathMatchResult.NoMatch
-    }
-
-def segment(oneOf: Set[String]): PathMatcher[String] =
-  (consumed: List[String], in: List[String]) =>
-    in match {
-      case head :: tail =>
-        if (oneOf.contains(head)) {
-          PathMatchResult.Match(head, consumed.appended(head), tail)
-        } else {
-          PathMatchResult.Rejected(tail)
-        }
-      case Nil          => PathMatchResult.NoMatch
-    }
-
-def segment(s: String): PathMatcher0 =
-  (consumed: List[String], in: List[String]) =>
-    in match {
-      case head :: tail =>
-        if (head == s) {
-          PathMatchResult.Match((), consumed.appended(head), tail)
-        } else {
-          PathMatchResult.Rejected(tail)
-        }
-      case Nil          => PathMatchResult.NoMatch
-    }
-
-def regex(r: Regex): PathMatcher[Match] =
-  segment
-    .map(r.findFirstMatchIn)
-    .collect { case Some(m) => m }
-
-def long: PathMatcher[Long] = segment.tryParse(_.toLong)
-
-def double: PathMatcher[Double] = segment.tryParse(_.toDouble)
-
-implicit def stringToSegment(s: String): PathMatcher[Unit] = segment(s)
-
-implicit def setToSegment(oneOf: Set[String]): PathMatcher[String] = segment(oneOf)
-
-implicit def setToSegment(oneOf: Seq[String]): PathMatcher[String] = segment(oneOf)
-
-implicit def regexToPathMatcher(r: Regex): PathMatcher[Match] = regex(r)
 
 private[frontroute] object Frontroute:
 

@@ -37,39 +37,13 @@ object TabsExample
         "tab-2" -> "Tab 2",
       )
 
-      div(
+      routes(
         div(
           cls := "p-4 min-h-[300px]",
           div(
             cls := "space-y-2",
             div(
               cls := "flex space-x-2",
-              // ---
-//              a(
-//                relativeHref("tab-1"),
-//                /* <focus> */
-//                navMod { active =>
-//                  cls <-- active.ifF(
-//                    List("text-xl px-4 py-1 rounded border-b-2 border-blue-800 bg-blue-200 text-blue-800"),
-//                    List("text-xl px-4 py-1 rounded border-b-2 border-transparent text-blue-700")
-//                  )
-//                },
-//                /* </focus> */
-//                "Tab 1"
-//              ),
-//              a(
-//                relativeHref("tab-2"),
-//                /* <focus> */
-//                navMod { active =>
-//                  cls <-- active.ifF(
-//                    List("text-xl px-4 py-1 rounded border-b-2 border-blue-800 bg-blue-200 text-blue-800"),
-//                    List("text-xl px-4 py-1 rounded border-b-2 border-transparent text-blue-700")
-//                  )
-//                },
-//                /* </focus> */
-//                "Tab 2"
-//              ),
-              // ---
               tabs.map { case (path, tabLabel) =>
                 a(
                   relativeHref(path),

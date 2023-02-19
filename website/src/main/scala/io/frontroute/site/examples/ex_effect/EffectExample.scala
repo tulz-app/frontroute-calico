@@ -32,7 +32,7 @@ object EffectExample
 
       import org.scalajs.dom
 
-      div(
+      routes(
         div(
           cls := "p-4 min-h-[300px]",
           /* <focus> */
