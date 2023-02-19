@@ -1,22 +1,38 @@
-`frontroute` is a router library for [Scala.js](https://www.scala-js.org/) + [Laminar](https://laminar.dev/) applications.
+`frontroute-calico` is a router library for [Scala.js](https://www.scala-js.org/) + [Calico](https://www.armanbilge.com/calico/) applications.
 
 ```scala
-import com.raquo.laminar.api.L.*
-import io.frontroute.*
+import frontroute.*
+import frontroute.given
+import calico.*
+import calico.html.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
 
-div(
-  pathEnd {
-    IndexPage()
-  },
-  path("sign-in") {
-    SignInPage()
-  },
-  path("sign-up") {
-    SignUpPage()
-  },
-  noneMatched {
-    NotFoundPage()
-  }
+routes(
+  div(
+    pathEnd {
+      div(
+        "Home Page"
+      )
+    },
+    path("sign-in") {
+      div(
+        "Sign-in Page"
+      )
+    },
+    path("sign-up") {
+      div(
+        "Sign-up Page"
+      )
+    },
+    (noneMatched & extractUnmatchedPath) { unmatched =>
+      div(
+        s"Not Found - ${unmatched.mkString("/", "/", "")}"
+      )
+    }
+  )
 )
 ```
 
@@ -27,8 +43,8 @@ See [getting started](/getting-started).
 ### Prerequisites
 
 * [Scala.js](https://www.scala-js.org/) `v{{scalajsVersion}}`+
-* Scala 2.13 or {{scala3version}}+
-* [Laminar](https://laminar.dev/) {{laminarVersion}} (it will be added to your project's dependencies transitively)
+* Scala {{scala3version}}+
+* [Calico](https://www.armanbilge.com/calico/) {{calicoVersion}} (it will be added to your project's dependencies transitively)
 
 ### sbt
 
@@ -44,7 +60,7 @@ Enable the plugin and add the `frontroute` library to your `build.sbt` file:
 enablePlugins(ScalaJSPlugin)
 
 libraryDependencies ++= Seq(
-  "io.frontroute" %%% "frontroute" % "{{frontrouteVersion}}"
+  "io.frontroute" %%% "frontroute-calico" % "{{frontrouteVersion}}"
 )
 ```
 
@@ -61,20 +77,8 @@ object counter extends ScalaJSModule {
     def scalaVersion   = "{{scala3version}}"
     def scalaJSVersion = "{{scalajsVersion}}"
     
-    def ivyDeps = Agg(ivy"io.frontroute::frontroute::{{frontrouteVersion}}")
+    def ivyDeps = Agg(ivy"io.frontroute::frontroute-calico::{{frontrouteVersion}}")
     
     override def moduleKind = T(mill.scalajslib.api.ModuleKind.CommonJSModule)
 }
 ```
-
-### Previous versions
-
-#### frontroute `v0.15.x`
-
-See [documentation](https://frontroute.dev/v/0.15.x/).
-
----
-
-Older versions of `frontroute` are no longer maintained and documentation is not available.
-
-
