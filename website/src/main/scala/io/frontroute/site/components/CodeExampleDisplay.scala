@@ -127,7 +127,7 @@ object CodeExampleDisplay {
             }
           )
         ),
-        path( /*Set("live", "source", "description")*/ segment).signal { tab =>
+        path(Set("live", "source", "description")).signal { tab =>
           div(
             cls := "flex-1 flex flex-col space-y-2",
             div(
