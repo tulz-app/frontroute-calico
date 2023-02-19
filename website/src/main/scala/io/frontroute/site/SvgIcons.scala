@@ -46,10 +46,6 @@ object SvgIcons {
               """xmlns="http://www.w3.org/2000/svg"""",
               ""
             )
-            .replaceAll(
-              """xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full"""",
-              ""
-            )
         }
       }
 
