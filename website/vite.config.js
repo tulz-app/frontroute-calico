@@ -1,11 +1,10 @@
-import { resolve } from 'path'
-import { minifyHtml, injectHtml } from 'vite-plugin-html'
-import { createHtmlPlugin } from 'vite-plugin-html'
+import {resolve} from 'path'
+import {createHtmlPlugin} from 'vite-plugin-html'
 
 import scalaVersion from './scala-version'
 
 // https://vitejs.dev/config/
-export default ({ mode }) => {
+export default ({mode}) => {
   const mainJS = `/target/scala-${scalaVersion}/website-${mode === 'production' ? 'opt' : 'fastopt'}/main.js`
   console.log('mainJS', mainJS)
   const script = `<script type="module" src="${mainJS}"></script>`
@@ -20,22 +19,14 @@ export default ({ mode }) => {
       outDir: 'dist/v/0.17.x-calico',
     },
     plugins: [
-      ...(mode === 'production' ? [
-        minifyHtml(),
-      ] : []),
-      // injectHtml({
-      //   injectData: {
-      //     script
-      //   }
-      // })
       createHtmlPlugin({
+        minify: mode === 'production',
         inject: {
           data: {
             script,
           },
         },
       }),
-
     ],
     resolve: {
       alias: {
