@@ -79,7 +79,14 @@ Use case:
 ```
 
 ```scala
-import frontroute._
+import frontroute.*
+import frontroute.given
+import calico.*
+import calico.html.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
 
 import scala.util.Try
 

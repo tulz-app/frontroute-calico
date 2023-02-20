@@ -38,19 +38,24 @@ triggering the standard browser navigation.
 In order to activate the link handler, you need to bind it at the top of your view tree:
 
 ```scala
-import com.raquo.laminar.api.L._
-import frontroute._
+import frontroute.*
+import frontroute.given
+import calico.*
+import calico.html.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
 
-object Main {
+object IOWebApp {
 
-  val myApp = div("My App")
-  
-  def main(args: Array[String]): Unit = {
-    val appContainer = org.scalajs.dom.document.querySelector("#app")
-    render(
-      appContainer,
-      myApp.amend(LinkHandler.bind)
-    )
+  override def rootElementId = "app"
+
+  def render = {
+      div(
+        "My App",
+        LinkHandler
+      )
   }
 
 }
@@ -77,18 +82,24 @@ The `onClick` handler will do the following:
 * `BrowserNavigation.replaceState`
 
 ```scala
-  import com.raquo.laminar.api.L._
-  import frontroute._
+import frontroute.*
+import frontroute.given
+import calico.*
+import calico.html.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
 
   div(
     button(
       href := "/news", 
-      onClick.preventDefault --> { _ => BrowserNavigation.pushState(url = "/blog") } ),
+      onClick --> { _.foreach(_ => BrowserNavigation.pushState(url = "/blog")) } ),
       "Blog"
     ,
     button(
       href := "/blog",
-      onClick.preventDefault --> { _ => BrowserNavigation.pushState(url = "/news") },
+      onClick --> { _.foreach(_ => BrowserNavigation.pushState(url = "/news")) },
       "News"
     )
   )

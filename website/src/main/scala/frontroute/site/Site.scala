@@ -58,7 +58,6 @@ class Site(
       title = "Getting started",
       index = docPage("", "", FileAsString("/doc/getting-started/index.md")),
       ""                   -> List(
-        docPage("laminar-basics", "Laminar basics", FileAsString("/doc/getting-started/laminar-basics.md")),
         docPage("first-routes", "First routes", FileAsString("/doc/getting-started/first-routes.md")),
         docPage("handling-not-found", "Handling 'Not Found'", FileAsString("/doc/getting-started/handling-not-found.md")),
         docPage("links-and-navigation", "Links and Navigation", FileAsString("/doc/getting-started/links-and-navigation.md")),

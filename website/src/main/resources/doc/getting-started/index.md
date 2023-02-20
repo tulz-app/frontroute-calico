@@ -1,7 +1,3 @@
-[Laminar basics](/getting-started/laminar-basics)
-
-A quick intro into Laminar.
-
 [First routes](/getting-started/first-routes)
 
 First steps and main concepts.

@@ -8,23 +8,31 @@ Say we want the following:
 * when the location is `/news`, it should render `<div>News</div>`.
 
 ```scala
-import com.raquo.laminar.api.L.*
 import frontroute.*
+import frontroute.given
+import calico.*
+import calico.html.*
+import calico.html.io.given
+import calico.html.io.*
+import fs2.dom.*
+import calico.syntax.*
 
-val myApp = div(
+def render = routes(
+  div(
 
-  path("blog") {
-    div("Blog")
-  },
+    path("blog") {
+      div("Blog")
+    },
 
-  path("news") {
-    div("News")
-  }
-
+    path("news") {
+      div("News")
+    }
+    
+  )
 )
 ```
 
-And that is all it takes to have routing in our app. It looks like a regular Laminar app, except we added two new
+And that is all it takes to have routing in our app. It looks like a regular Calico app, except we added two new
 constructs:
 
 * `path("blog") { ... }`, and
@@ -32,7 +40,7 @@ constructs:
 
 These are the `Route`-s.
 
-A route is a regular Laminar modifier which acts similarly to the `child.maybe <-- ...` modifier:
+A route is a regular Calico modifier which acts similarly to a `Signal[IO, Option[Resource[IO, HTMLElement[IO]]]]`:
 
 * when the route matches, the corresponding element is inserted into the parent,
 * otherwise, the element is removed.

@@ -100,10 +100,10 @@ Having only directives, we would not have been able to ever complete building a 
 need to provide a way to build an inner route, and to build that inner route we would need to use another directive, and
 provide it with its own inner route, etc. So we need a way to terminate this process somehow at the very "end".
 
-For this, Laminar `Element`-s have an implicit conversion into a `Route`:
+For this, Calico `Element`-s (which are resources like `Resource[IO, HTMLElement[IO]]`) have an implicit conversion into a `Route`:
 
 ```scala
-implicit def elementToRoute(e: => Element): Route
+implicit def nodeToRoute[N <: fs2.dom.Node[IO]](e: => Resource[IO, N]): Route
 ```
 
 So we can complete building a route like this:
@@ -115,10 +115,3 @@ someDirective {
   }
 }
 ```
-
-Additionally, a `Signal[Element]` can be implicitly converted into a `Route` as well:
-
-```scala
-implicit def signalOfElementToRoute(e: => Signal[Element]): Route
-```
-
