@@ -25,10 +25,6 @@ object AdvancedParamsExample
       import fs2.dom.*
       import calico.syntax.*
       import cats.effect.*
-      import cats.effect.syntax.all.*
-      import cats.syntax.all.*
-      import fs2.*
-      import fs2.concurrent.*
       import scala.util.Try
 
       /* <focus> */

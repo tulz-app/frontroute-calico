@@ -1,17 +1,18 @@
-package frontroute.site.examples.ex_nested
+package frontroute.site.examples.ex_navmod
 
 import frontroute.site.examples.CodeExample
 import com.yurique.embedded.FileAsString
 
-object NestedExample
+object NavModExample
     extends CodeExample(
-      id = "nested-routes",
-      title = "Nested routes",
+      id = "navmod",
+      title = "navMod",
       description = FileAsString("description.md"),
       links = Seq(
         "/",
-        "/tabs/tab-1",
-        "/tabs/tab-2",
+        "/page-1",
+        "/page-2",
+        "/page-3",
         "/some-page"
       )
     )(() => {
@@ -28,19 +29,20 @@ object NestedExample
       import cats.effect.syntax.all.*
       import cats.syntax.all.*
 
-      val tabs = List(
-        "tab-1" -> "Tab 1",
-        "tab-2" -> "Tab 2",
+      val links = List(
+        "page-1" -> "Page 1",
+        "page-2" -> "Page 2",
+        "page-3" -> "Page 3",
       )
 
-      def MyComponent(): Resource[IO, HtmlElement[IO]] =
+      routes(
         div(
-          cls := "space-y-2",
+          cls := "p-4 min-h-[300px]",
           div(
-            cls := "flex space-x-2",
-            tabs.map { case (path, tabLabel) =>
+            cls := "flex space-x-4",
+            links.map { case (path, pageTitle) =>
               a(
-                href := path,
+                relativeHref(path),
                 /* <focus> */
                 navMod { active =>
                   cls <-- active.ifF(
@@ -49,39 +51,42 @@ object NestedExample
                   )
                 },
                 /* </focus> */
-                tabLabel
+                pageTitle
               )
             }
           ),
-          div(
-            /* <focus> */
-            path("tab-1") {
-              /* </focus> */
-              div("Content one.", cls := "bg-blue-100 text-blue-600 p-4")
-              /* <focus> */
-            },
-            /* </focus> */
-            /* <focus> */
-            path("tab-2") {
-              /* </focus> */
-              div("Content two", cls := "bg-blue-100 text-blue-600 p-4")
-              /* <focus> */
-            }
-            /* </focus> */
-          )
-        )
-
-      routes(
-        div(
-          cls := "p-4 min-h-[300px]",
           pathEnd {
-            div(cls := "text-2xl", "Index page.")
+            div(
+              cls := "text-2xl",
+              div(
+                "Index page."
+              ),
+            )
           },
-          /* <focus> */
-          pathPrefix("tabs") {
-            MyComponent()
+          path("page-1") {
+            div(
+              cls := "text-2xl",
+              div(
+                "Page 1."
+              ),
+            )
           },
-          /* </focus> */
+          path("page-2") {
+            div(
+              cls := "text-2xl",
+              div(
+                "Page 2."
+              ),
+            )
+          },
+          path("page-3") {
+            div(
+              cls := "text-2xl",
+              div(
+                "Page 3."
+              ),
+            )
+          },
           (noneMatched & extractUnmatchedPath) { unmatched =>
             div(
               div(cls := "text-2xl", "Not Found"),

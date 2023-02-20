@@ -27,8 +27,6 @@ object ExtractMatchedPathExample
       import cats.effect.*
       import cats.effect.syntax.all.*
       import cats.syntax.all.*
-      import fs2.*
-      import fs2.concurrent.*
 
       def ShowCurrentPath(label: String): Resource[IO, HtmlElement[IO]] =
         div(

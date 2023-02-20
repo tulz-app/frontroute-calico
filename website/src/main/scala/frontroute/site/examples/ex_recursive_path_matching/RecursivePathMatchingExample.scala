@@ -30,10 +30,6 @@ object RecursivePathMatchingExample
       import fs2.dom.*
       import calico.syntax.*
       import cats.effect.*
-      import cats.effect.syntax.all.*
-      import cats.syntax.all.*
-      import fs2.*
-      import fs2.concurrent.*
 
       def recursivePathMatch: Directive[List[String]] =
         /* <focus> */

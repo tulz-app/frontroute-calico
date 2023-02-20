@@ -37,10 +37,10 @@ type PathMatcher0 = PathMatcher[Unit]
 
 type Directive0 = Directive[Unit]
 
-def initRouting[N <: fs2.dom.Node[IO], M]: InitRouting =
+def initRouting[N <: fs2.dom.Node[IO]]: InitRouting =
   InitRouting(LocationProvider.windowLocationProvider)
 
-def initRouting[N <: fs2.dom.Node[IO], M](lp: LocationProvider): InitRouting =
+def initRouting[N <: fs2.dom.Node[IO]](lp: LocationProvider): InitRouting =
   InitRouting(lp)
 
 def routes[M](mods: M)(using Modifier[IO, HtmlDivElement[IO], M]) =

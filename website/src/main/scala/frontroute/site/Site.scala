@@ -49,6 +49,8 @@ class Site(
       frontroute.site.examples.ex_effect.EffectExample,
       frontroute.site.examples.ex_extract_matched_path.ExtractMatchedPathExample,
       frontroute.site.examples.ex_matched_path.MatchedPathExample,
+      frontroute.site.examples.ex_navigate.NavigateExample,
+      frontroute.site.examples.ex_navmod.NavModExample,
     )
 
   val modules: List[SiteModule] = List(
