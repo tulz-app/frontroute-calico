@@ -1,6 +1,7 @@
 import {resolve} from 'path'
 import {createHtmlPlugin} from 'vite-plugin-html'
 import commonjs from '@rollup/plugin-commonjs';
+import viteCompression from 'vite-plugin-compression';
 
 import scalaVersion from './scala-version'
 
@@ -23,7 +24,17 @@ export default ({mode}) => {
       disabled: true,
     },
     plugins: [
-      ...(mode === 'production' ? [commonjs()] : []),
+      ...(mode === 'production' ? [
+        commonjs(),
+        viteCompression({
+          filter: /\.(js|css|html)$/i,
+          algorithm: 'gzip'
+        }),
+        viteCompression({
+          filter: /\.(js|css|html)$/i,
+          algorithm: 'brotliCompress'
+        }),
+      ] : []),
       createHtmlPlugin({
         minify: mode === 'production',
         inject: {
