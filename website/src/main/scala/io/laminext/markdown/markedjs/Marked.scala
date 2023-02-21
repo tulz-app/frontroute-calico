@@ -8,7 +8,7 @@ import scala.scalajs.js.annotation.JSImport
  *   [[https://github.com/chjj/marked#usage]]
  */
 @js.native
-@JSImport("marked", JSImport.Namespace)
+@JSImport("marked", JSImport.Default)
 object Marked extends js.Object {
 
   /**
@@ -17,8 +17,7 @@ object Marked extends js.Object {
    * @param options
    *   Hash of options. Can also be set using the `marked.setOptions` method as seen above.
    * @param callback
-   *   Function called when the `markdownString` has been fully parsed when using async highlighting. If the options argument is omitted, this can be used as
-   *   the second argument.
+   *   Function called when the `markdownString` has been fully parsed when using async highlighting. If the options argument is omitted, this can be used as the second argument.
    */
   def parse(markdownString: String, options: js.Object = ???, callback: js.Function = ???): String = js.native
 

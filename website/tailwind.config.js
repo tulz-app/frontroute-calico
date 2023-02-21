@@ -1,11 +1,11 @@
 const scalaVersion = require('./scala-version')
 
 module.exports = (api) => {
-  const scalajsMode = api.mode === 'production' ? 'opt' : 'fastopt'
+  const scalajsMode = api.env === 'production' ? 'opt' : 'fastopt'
   return {
     content: [
       `./target/scala-${scalaVersion}/website-${scalajsMode}/*.js`,
-      './src/main/static/html/*',
+      './index.html',
     ],
     theme: {
       extend: {

@@ -163,8 +163,8 @@ lazy val website = project
   .settings(
     githubWorkflowTargetTags        := Seq.empty,
     publish / skip                  := true,
-    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
-    scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(ESVersion.ES2015)) },
+    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
+    scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(ESVersion.ES5_1)) },
     Compile / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
     scalaJSUseMainModuleInitializer := true,
     //    scalaJSLinkerConfig ~= (_.withModuleSplitStyle(org.scalajs.linker.interface.ModuleSplitStyle.FewestModules)),

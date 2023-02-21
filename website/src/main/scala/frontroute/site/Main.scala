@@ -23,7 +23,7 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 
 @js.native
-@JSImport("stylesheets/index.css", JSImport.Namespace)
+@JSImport("stylesheets/index.css", JSImport.Default)
 object IndexCss extends js.Object
 
 object Main extends IOWebApp {
@@ -70,7 +70,6 @@ object Main extends IOWebApp {
         IO {
           removeNoJsClass(wiring.ssrContext)
           insertJsClass(wiring.ssrContext)
-
         }
       } >> (
         if (dom.window.location.pathname.startsWith(site.thisVersionHref("/example-frame/"))) {
