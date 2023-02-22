@@ -144,7 +144,7 @@ lazy val frontroute =
       Test / parallelExecution := false,
       ScalaOptions.fixOptions,
       scalacOptions ++= {
-        val sourcesGithubUrl  = s"https://raw.githubusercontent.com/tulz-app/frontroute/${git.gitHeadCommit.value.get}/"
+        val sourcesGithubUrl  = s"https://raw.githubusercontent.com/tulz-app/frontroute-calico/${git.gitHeadCommit.value.get}/"
         val sourcesOptionName = CrossVersion.partialVersion(scalaVersion.value) match {
           case Some((2, _)) => "-P:scalajs:mapSourceURI"
           case Some((3, _)) => "-scalajs-mapSourceURI"
@@ -194,7 +194,7 @@ lazy val website = project
     Compile / fastLinkJS / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
     Compile / fullLinkJS / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
     scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(ESVersion.ES5_1)) },
-    Compile / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+    Compile / scalaJSLinkerConfig ~= { _.withSourceMap(true) },
     scalaJSUseMainModuleInitializer := true,
     //    scalaJSLinkerConfig ~= (_.withModuleSplitStyle(org.scalajs.linker.interface.ModuleSplitStyle.FewestModules)),
     libraryDependencies ++= Seq.concat(
