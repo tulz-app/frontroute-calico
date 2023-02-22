@@ -4,14 +4,13 @@ import cats.effect.IO
 import frontroute.site.pages.CodeExamplePage
 import frontroute.site.pages.DocumentationPage
 import com.yurique.embedded.FileAsString
+import frontroute.BuildInfo
 import fs2.concurrent.Signal
 import frontroute.site.examples.CodeExample
 
-class Site(
-  highlightStyle: Signal[IO, String]
-) {
+class Site {
 
-  val frontrouteVersion: String = "0.17.x-calico"
+  val frontrouteVersion: String = BuildInfo.frontrouteSiteVersion
 
   val thisVersionPrefix = s"/v/$frontrouteVersion/"
 
@@ -20,7 +19,7 @@ class Site(
 
   private def examplePage(
     example: CodeExample
-  ): Page = Page(example.id, example.id + "/live", example.title, CodeExamplePage(example, this, highlightStyle))
+  ): Page = Page(example.id, example.id + "/live", example.title, CodeExamplePage(example, this))
 
   private def docPage(
     path: String,

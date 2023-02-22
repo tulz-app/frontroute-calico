@@ -13,7 +13,6 @@ import org.scalajs.jsenv.selenium.SeleniumJSEnv
 
 import java.util.concurrent.TimeUnit
 
-import org.commonmark.node._
 import org.commonmark.parser.Parser
 import org.commonmark.renderer.html.HtmlRenderer
 
@@ -158,20 +157,40 @@ lazy val frontroute =
       }
     )
 
-lazy val parser                    = Parser.builder.build
-lazy val renderer                  = HtmlRenderer.builder.build
-lazy val frontrouteVersion: String = "0.17.x-calico"
-lazy val thisVersionSitePrefix     = s"/v/$frontrouteVersion/"
+lazy val parser   = Parser.builder.build
+lazy val renderer = HtmlRenderer.builder.build
+
+lazy val frontrouteSiteVersion: String = IO.read(file("website/.frontroute-version")).trim
+lazy val thisVersionSitePrefix         = s"/v/$frontrouteSiteVersion/"
+
+lazy val vars = Seq(
+  "frontrouteVersion" -> "0.17.0-M1",
+  "calicoVersion"     -> "0.2-8797711-SNAPSHOT",
+  "scalajsVersion"    -> "1.13.0",
+  "scala3version"     -> "3.2.1",
+)
+
+def templateVars(s: String): String =
+  vars.foldLeft(s) { case (acc, (varName, varValue)) =>
+    acc.replace(s"{{${varName}}}", varValue)
+  }
 
 lazy val website = project
   .in(file("website"))
-  .enablePlugins(ScalaJSPlugin)
-  .enablePlugins(EmbeddedFilesPlugin)
+  .enablePlugins(ScalaJSPlugin, EmbeddedFilesPlugin, BuildInfoPlugin)
   .settings(ScalaOptions.fixOptions)
   .settings(noPublish)
   .settings(
     githubWorkflowTargetTags        := Seq.empty,
     publish / skip                  := true,
+    buildInfoKeys                   := Seq[BuildInfoKey](
+      version,
+      scalaVersion,
+      BuildInfoKey(
+        "frontrouteSiteVersion" -> frontrouteSiteVersion
+      )
+    ),
+    buildInfoPackage                := "frontroute",
     Compile / fastLinkJS / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
     Compile / fullLinkJS / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
     scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(ESVersion.ES5_1)) },
@@ -189,10 +208,10 @@ lazy val website = project
       TransformConfig(
         when = _.getFileName.toString.endsWith(".md"),
         transform = { s =>
-          renderer
-            .render(parser.parse(s)).replace(
+          templateVars(renderer.render(parser.parse(s)))
+            .replace(
               """<a href="/""",
-              s"""<a href="${thisVersionSitePrefix}"""
+              s"""<a href="${frontrouteSiteVersion}"""
             )
         }
       )

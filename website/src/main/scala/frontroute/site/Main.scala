@@ -64,7 +64,7 @@ object Main extends IOWebApp {
     Highlight.registerLanguage("json", HighlightJson)
     Highlight.registerLanguage("html", HighlightXml)
     Resource.eval(SignallingRef[IO, String]("an-old-hope")).flatMap { highlightStyle =>
-      val site   = Site(highlightStyle)
+      val site   = Site()
       val wiring = Wiring(site)
       Resource.eval {
         IO {

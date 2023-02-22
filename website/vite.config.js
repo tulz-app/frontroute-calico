@@ -2,8 +2,11 @@ import {resolve} from 'path'
 import {createHtmlPlugin} from 'vite-plugin-html'
 import commonjs from '@rollup/plugin-commonjs';
 import viteCompression from 'vite-plugin-compression';
+import fs from 'fs'
 
 import scalaVersion from './scala-version'
+
+const frontrouteVersion = fs.readFileSync('.frontroute-version')
 
 // https://vitejs.dev/config/
 export default ({mode}) => {
@@ -15,10 +18,10 @@ export default ({mode}) => {
     server: {
       port: 6080,
     },
-    base: '/v/0.17.x-calico/',
+    base: `/v/${frontrouteVersion}/`,
     publicDir: './src/main/public',
     build: {
-      outDir: 'dist/v/0.17.x-calico',
+      outDir: `dist/v/${frontrouteVersion}`,
     },
     optimizeDeps: {
       disabled: mode === 'production',

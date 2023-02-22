@@ -2,7 +2,6 @@ package frontroute.site.components
 
 import io.laminext.highlight.Highlight
 import frontroute.site.Site
-import frontroute.site.TemplateVars
 import calico.*
 import calico.html.*
 import calico.html.io.given
@@ -34,7 +33,7 @@ object DocumentationDisplay {
         val node = e.asInstanceOf[dom.HTMLDivElement]
         Resource.eval {
           IO {
-            node.innerHTML = TemplateVars(docHtml)
+            node.innerHTML = docHtml
           } >> IO {
             node.querySelectorAll("pre > code").foreach { codeElement =>
               Highlight.highlightElement(codeElement)

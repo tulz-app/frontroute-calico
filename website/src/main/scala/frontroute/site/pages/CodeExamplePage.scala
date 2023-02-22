@@ -20,9 +20,8 @@ object CodeExamplePage {
   def apply(
     example: CodeExample,
     site: Site,
-    highlightStyle: Signal[IO, String]
   ): Resource[IO, HtmlElement[IO]] = page(example.title) {
-    CodeExampleDisplay(example, site, highlightStyle)
+    CodeExampleDisplay(example, site)
   }
 
 }

@@ -8,7 +8,6 @@ import io.laminext.highlight.Highlight
 import frontroute.site.examples.CodeExample
 import frontroute.site.Site
 import frontroute.site.Styles
-import frontroute.site.TemplateVars
 import org.scalajs.dom
 import org.scalajs.dom.HTMLIFrameElement
 import org.scalajs.dom.Location
@@ -52,7 +51,6 @@ object CodeExampleDisplay {
   def apply(
     example: CodeExample,
     site: Site,
-    highlightStyle: Signal[IO, String]
   ): Resource[IO, HtmlDivElement[IO]] =
     Resource.eval(SignallingRef.of[IO, Boolean](true)).flatMap { highlightRelevant =>
       // storedBoolean("dim-context", initial = true)
@@ -175,7 +173,7 @@ object CodeExampleDisplay {
               val node = e.asInstanceOf[dom.HTMLDivElement]
               Resource.eval {
                 IO {
-                  node.innerHTML = TemplateVars(example.description)
+                  node.innerHTML = example.description
                 } >> IO {
                   node.querySelectorAll("pre > code").foreach { codeElement =>
                     Highlight.highlightElement(codeElement)
