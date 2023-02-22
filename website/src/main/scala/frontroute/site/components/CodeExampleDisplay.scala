@@ -136,15 +136,7 @@ object CodeExampleDisplay {
                         (
                           tpe := "checkbox",
                           checked <-- highlightRelevant,
-                          onClick --> {
-                            _.foreach { _ =>
-                              IO(println("click")) >>
-                                el.checked.get.flatMap { c =>
-                                  IO(println(s"checked: $c")) >>
-                                    highlightRelevant.set(c)
-                                }
-                            }
-                          }
+                          onClick --> { _.foreach { _ => el.checked.get.flatMap(highlightRelevant.set) } }
                         )
                       ),
                       span(
@@ -155,14 +147,7 @@ object CodeExampleDisplay {
               ),
               div(
                 cls := "flex-1 shadow relative overflow-x-auto",
-//                highlightRelevant.map { highlightRelevant =>
-//                  Resource.eval(IO(println(s"highlightRelevant: $highlightRelevant"))) >>
-//                    codeNode(highlightRelevant)
-//                }
-                (highlightStyle, highlightRelevant).mapN { (_, highlightRelevant) =>
-                  Resource.eval(IO(println(s"highlightRelevant: $highlightRelevant"))) >>
-                    codeNode(highlightRelevant)
-                }
+                highlightRelevant.map(codeNode)
               )
             ),
             div(
