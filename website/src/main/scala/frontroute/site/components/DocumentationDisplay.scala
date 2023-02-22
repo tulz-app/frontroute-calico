@@ -3,7 +3,6 @@ package frontroute.site.components
 import io.laminext.highlight.Highlight
 import frontroute.site.Site
 import frontroute.site.TemplateVars
-import io.laminext.markdown.markedjs.Marked
 import calico.*
 import calico.html.*
 import calico.html.io.given
@@ -20,10 +19,9 @@ import org.scalajs.dom
 object DocumentationDisplay {
 
   def apply(
-             title: String,
-             markdown: String,
-             site: Site
-           ): Resource[IO, HtmlElement[IO]] =
+    title: String,
+    docHtml: String,
+  ): Resource[IO, HtmlElement[IO]] =
     div(
       cls := "space-y-4",
       h1(
@@ -36,11 +34,7 @@ object DocumentationDisplay {
         val node = e.asInstanceOf[dom.HTMLDivElement]
         Resource.eval {
           IO {
-            node.innerHTML = Marked
-              .parse(TemplateVars(markdown)).replace(
-                """<a href="/""",
-                s"""<a href="${site.thisVersionPrefix}"""
-              )
+            node.innerHTML = TemplateVars(docHtml)
           } >> IO {
             node.querySelectorAll("pre > code").foreach { codeElement =>
               Highlight.highlightElement(codeElement)

@@ -13,6 +13,7 @@ import calico.syntax.*
 import cats.effect.*
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
+import frontroute.site.pages.NotFoundPage
 import fs2.*
 import fs2.concurrent.*
 
@@ -77,10 +78,10 @@ class Routes(
             }
           },
           (noneMatched & anyVersionPrefix) {
-            div("Not Found - wrong version")
+            NotFoundPage("Not Found", "Not Found - wrong version")
           },
           (noneMatched & extractUnmatchedPath) { unmatched =>
-            div(s"Not Found")
+            NotFoundPage("Not Found", "Not Found")
           }
         )
       }

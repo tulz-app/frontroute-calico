@@ -19,9 +19,8 @@ object DocumentationPage {
   def apply(
     title: String,
     markdown: String,
-    site: Site,
   ): Resource[IO, HtmlElement[IO]] = page(title) {
-    DocumentationDisplay(title, markdown, site)
+    DocumentationDisplay(title, markdown)
   }
 
 }

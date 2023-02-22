@@ -26,7 +26,7 @@ class Site(
     path: String,
     title: String,
     markdown: String
-  ): Page = Page(path, path, title, DocumentationPage(title, markdown, this))
+  ): Page = Page(path, path, title, DocumentationPage(title, markdown))
 
   val indexModule: SiteModule =
     SiteModule(

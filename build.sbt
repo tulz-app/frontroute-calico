@@ -13,6 +13,10 @@ import org.scalajs.jsenv.selenium.SeleniumJSEnv
 
 import java.util.concurrent.TimeUnit
 
+import org.commonmark.node._
+import org.commonmark.parser.Parser
+import org.commonmark.renderer.html.HtmlRenderer
+
 val disableWebsiteOnCI = false
 
 val ciVariants = List("ciFirefox", "ciChrome", "ciJSDOMNodeJS")
@@ -154,6 +158,11 @@ lazy val frontroute =
       }
     )
 
+lazy val parser                    = Parser.builder.build
+lazy val renderer                  = HtmlRenderer.builder.build
+lazy val frontrouteVersion: String = "0.17.x-calico"
+lazy val thisVersionSitePrefix     = s"/v/$frontrouteVersion/"
+
 lazy val website = project
   .in(file("website"))
   .enablePlugins(ScalaJSPlugin)
@@ -163,7 +172,8 @@ lazy val website = project
   .settings(
     githubWorkflowTargetTags        := Seq.empty,
     publish / skip                  := true,
-    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
+    Compile / fastLinkJS / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
+    Compile / fullLinkJS / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
     scalaJSLinkerConfig ~= { _.withESFeatures(_.withESVersion(ESVersion.ES5_1)) },
     Compile / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
     scalaJSUseMainModuleInitializer := true,
@@ -175,6 +185,18 @@ lazy val website = project
     ),
     embedTextGlobs                  := Seq("**/*.md"),
     embedDirectories ++= (Compile / unmanagedSourceDirectories).value,
+    embedTransform                  := Seq(
+      TransformConfig(
+        when = _.getFileName.toString.endsWith(".md"),
+        transform = { s =>
+          renderer
+            .render(parser.parse(s)).replace(
+              """<a href="/""",
+              s"""<a href="${thisVersionSitePrefix}"""
+            )
+        }
+      )
+    ),
     (Compile / sourceGenerators) += embedFiles
   )
   .dependsOn(

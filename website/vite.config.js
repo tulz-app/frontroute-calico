@@ -8,7 +8,7 @@ import scalaVersion from './scala-version'
 // https://vitejs.dev/config/
 export default ({mode}) => {
   const mainJS = `target/scala-${scalaVersion}/website-${mode === 'production' ? 'opt' : 'fastopt'}/main.js`
-  const script = `<script type="module" src="${mainJS}"></script>`
+  const script = `<script type="module" src="/${mainJS}"></script>`
 
   /** @type {import('vite').UserConfig} */
   return {
@@ -21,7 +21,7 @@ export default ({mode}) => {
       outDir: 'dist/v/0.17.x-calico',
     },
     optimizeDeps: {
-      disabled: true,
+      disabled: mode === 'production',
     },
     plugins: [
       ...(mode === 'production' ? [

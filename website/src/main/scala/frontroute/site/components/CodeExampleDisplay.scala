@@ -9,7 +9,6 @@ import frontroute.site.examples.CodeExample
 import frontroute.site.Site
 import frontroute.site.Styles
 import frontroute.site.TemplateVars
-import io.laminext.markdown.markedjs.Marked
 import org.scalajs.dom
 import org.scalajs.dom.HTMLIFrameElement
 import org.scalajs.dom.Location
@@ -55,11 +54,11 @@ object CodeExampleDisplay {
     site: Site,
     highlightStyle: Signal[IO, String]
   ): Resource[IO, HtmlDivElement[IO]] =
-    Resource.eval(SignallingRef.of[IO, Boolean](true)).flatMap { dimContext =>
+    Resource.eval(SignallingRef.of[IO, Boolean](true)).flatMap { highlightRelevant =>
       // storedBoolean("dim-context", initial = true)
       val hasContext = example.code.source.contains("/* <focus> */")
 
-      val codeNode = (dim: Boolean) => {
+      val codeNode = (highlightRelevant: Boolean) => {
         val theCode = pre(
           cls := "w-full text-sm language-scala",
           fixIndentation {
@@ -81,7 +80,7 @@ object CodeExampleDisplay {
             IO.whenA(hasContext) {
               IO {
                 val _ = js.timers.setTimeout(100) {
-                  val updatedNode = setOpacityRecursively(node, 0, dim)
+                  val updatedNode = setOpacityRecursively(node, 0, highlightRelevant)
                   val _           = node.parentNode.replaceChild(updatedNode, node)
                 }
               }
@@ -136,10 +135,14 @@ object CodeExampleDisplay {
                       input.withSelf((el: HtmlInputElement[IO]) =>
                         (
                           tpe := "checkbox",
-                          checked <-- dimContext,
+                          checked <-- highlightRelevant,
                           onClick --> {
-                            _.foreach { e =>
-                              el.checked.get.flatMap(dimContext.set)
+                            _.foreach { _ =>
+                              IO(println("click")) >>
+                                el.checked.get.flatMap { c =>
+                                  IO(println(s"checked: $c")) >>
+                                    highlightRelevant.set(c)
+                                }
                             }
                           }
                         )
@@ -152,28 +155,17 @@ object CodeExampleDisplay {
               ),
               div(
                 cls := "flex-1 shadow relative overflow-x-auto",
-                (highlightStyle, dimContext).mapN { (_, dim) =>
-                  codeNode(dim)
-//                  code(
-//                    pre(
-//                      cls := "font-mono",
-//                      fixIndentation {
-//                        example.code.source
-//                      }
-//                        .replaceAll(
-//                          "\n[ ]*/\\* <focus> \\*/[ ]*\n",
-//                          "\n"
-//                        )
-//                        .replaceAll(
-//                          "\n[ ]*/\\* </focus> \\*/[ ]*\n",
-//                          "\n"
-//                        )
-//                    )
-//                  )
+//                highlightRelevant.map { highlightRelevant =>
+//                  Resource.eval(IO(println(s"highlightRelevant: $highlightRelevant"))) >>
+//                    codeNode(highlightRelevant)
+//                }
+                (highlightStyle, highlightRelevant).mapN { (_, highlightRelevant) =>
+                  Resource.eval(IO(println(s"highlightRelevant: $highlightRelevant"))) >>
+                    codeNode(highlightRelevant)
                 }
               )
             ),
-            div.withSelf(container =>
+            div(
               (
                 cls <-- tab.map(_ != "live").ifF(List("hidden"), List("flex-1 flex flex-col")),
                 iframe.withSelf { frame =>
@@ -183,7 +175,6 @@ object CodeExampleDisplay {
                       _.foreach { _ =>
                         IO {
                           val f = frame.asInstanceOf[dom.HTMLIFrameElement]
-//                          f.style.height = (document.body.scrollHeight + 20).toString + "px"
                           f.style.height = (f.contentWindow.document.body.scrollHeight + 20).toString + "px"
                         }
                       }
@@ -196,17 +187,14 @@ object CodeExampleDisplay {
             div(
               cls <-- tab.map(_ != "description").ifF(List("hidden"), List("flex-1 flex flex-col prose max-w-none")),
             ).flatTap { e =>
+              val node = e.asInstanceOf[dom.HTMLDivElement]
               Resource.eval {
                 IO {
-//                  Marked
-//                    .parse(TemplateVars(example.description)).replace(
-//                    """<a href="/""",
-//                    s"""<a href="${Site.thisVersionPrefix}"""
-//                  )
-//                  ctx.thisNode.ref.querySelectorAll("pre > code").foreach { codeElement =>
-//                    Highlight.highlightElement(codeElement)
-//                  }
-                  ()
+                  node.innerHTML = TemplateVars(example.description)
+                } >> IO {
+                  node.querySelectorAll("pre > code").foreach { codeElement =>
+                    Highlight.highlightElement(codeElement)
+                  }
                 }
               }
             }
