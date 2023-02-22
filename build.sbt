@@ -211,7 +211,7 @@ lazy val website = project
           templateVars(renderer.render(parser.parse(s)))
             .replace(
               """<a href="/""",
-              s"""<a href="${frontrouteSiteVersion}"""
+              s"""<a href="${thisVersionSitePrefix}"""
             )
         }
       )
