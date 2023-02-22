@@ -44,7 +44,7 @@ See [getting started](/getting-started).
 
 * [Scala.js](https://www.scala-js.org/) `v{{scalajsVersion}}`+
 * Scala {{scala3version}}+
-* [Calico](https://www.armanbilge.com/calico/) {{calicoVersion}} (it will be added to your project's dependencies transitively)
+* [Calico](https://www.armanbilge.com/calico/) `{{calicoVersion}}` (it will be added to your project's dependencies transitively)
 
 ### sbt
 
