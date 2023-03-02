@@ -1,6 +1,6 @@
 object DependencyVersions {
 
-  val calico                      = "0.2-8797711-SNAPSHOT"
+  val calico                      = "0.2.0-RC2"
   val tuplez                      = "0.3.8"
   val utest                       = "0.8.0"
   val scalatest                   = "3.2.15"
